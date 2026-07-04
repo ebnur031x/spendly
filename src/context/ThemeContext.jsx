@@ -8,10 +8,8 @@ function getInitialTheme() {
     const saved = localStorage.getItem(KEY)
     if (saved === 'light' || saved === 'dark') return saved
   } catch {}
-  try {
-    if (window.matchMedia?.('(prefers-color-scheme: dark)').matches) return 'dark'
-  } catch {}
-  return 'light'
+  // Spendly is dark-first — default to dark unless the user opts into light.
+  return 'dark'
 }
 
 export function ThemeProvider({ children }) {

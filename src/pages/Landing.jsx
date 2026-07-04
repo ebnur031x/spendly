@@ -3,6 +3,14 @@ import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import ThemeToggle from '../components/ThemeToggle'
 import Logo from '../components/Logo'
+import Reveal from '../components/Reveal'
+
+const NAV_ITEMS = [
+  { label: 'Features', href: '#features' },
+  { label: 'Budgets', href: '#budgets' },
+  { label: 'For students', href: '#students' },
+  { label: 'Pricing', href: '#pricing' },
+]
 
 // Wraps a floating card: outer layer follows the cursor (parallax),
 // inner layer keeps the idle float animation — the two transforms compose.
@@ -193,6 +201,62 @@ function UnderBudgetBadge() {
   )
 }
 
+function FeatureCard({ emoji, title, desc, delay }) {
+  return (
+    <Reveal delay={delay}>
+      <div className="lift" style={{
+        background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 20,
+        padding: 28, height: '100%',
+      }}>
+        <div style={{
+          width: 44, height: 44, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 20, background: 'rgba(124,58,237,0.1)', marginBottom: 18,
+        }}>{emoji}</div>
+        <h3 style={{ fontSize: 17, fontWeight: 700, color: 'var(--n900)', letterSpacing: '-0.01em', margin: '0 0 8px' }}>{title}</h3>
+        <p style={{ fontSize: 14.5, color: 'var(--n400)', lineHeight: 1.6, margin: 0 }}>{desc}</p>
+      </div>
+    </Reveal>
+  )
+}
+
+// Mirrors the real Dashboard budget ring — an honest preview, not a mockup.
+function BudgetShowcase() {
+  const pct = 57
+  const size = 168, stroke = 14
+  const r = (size - stroke) / 2
+  const c = 2 * Math.PI * r
+  const offset = c - (pct / 100) * c
+  return (
+    <div style={{
+      background: 'var(--elevated)', border: '1px solid var(--border-soft)', borderRadius: 24,
+      padding: 28, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18,
+      width: '100%', maxWidth: 280,
+    }}>
+      <div style={{ position: 'relative', width: size, height: size }}>
+        <svg width={size} height={size}>
+          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--track)" strokeWidth={stroke} />
+          <circle
+            cx={size / 2} cy={size / 2} r={r} fill="none"
+            stroke="#7c3aed" strokeWidth={stroke} strokeLinecap="round"
+            strokeDasharray={c} strokeDashoffset={offset}
+            className="ring-draw"
+            transform={`rotate(-90 ${size / 2} ${size / 2})`}
+          />
+        </svg>
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+          <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--n400)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Left</span>
+          <span style={{ fontSize: 26, fontWeight: 800, color: 'var(--n900)', letterSpacing: '-0.02em' }}>৳3,440</span>
+          <span style={{ fontSize: 11, color: 'var(--n300)' }}>of ৳8,000</span>
+        </div>
+      </div>
+      <div style={{ display: 'flex', gap: 10 }}>
+        <span style={{ fontSize: 12, fontWeight: 600, color: '#16a34a', background: 'rgba(34,197,94,0.12)', padding: '6px 12px', borderRadius: 999 }}>৳344/day</span>
+        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--n500)', background: 'var(--surface)', border: '1px solid var(--border)', padding: '6px 12px', borderRadius: 999 }}>10 days left</span>
+      </div>
+    </div>
+  )
+}
+
 function Star({ color = '#7c3aed', size = 16 }) {
   return (
     <span style={{ color, fontSize: size, lineHeight: 1, display: 'block' }}>✦</span>
@@ -270,37 +334,37 @@ export default function Landing() {
       {/* ── Navbar ── */}
       <nav style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '0 40px', height: 64,
+        padding: '0 clamp(16px, 5vw, 40px)', height: 64,
         borderBottom: '1px solid var(--border)',
         position: 'sticky', top: 0, zIndex: 50,
         backgroundColor: 'var(--nav-bg)',
         backdropFilter: 'blur(12px)',
       }}>
-        <Link to="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
+        <Link to="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', flexShrink: 0 }}>
           <Logo size={34} word wordSize={16} />
         </Link>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          {['Features', 'Budgets', 'For students', 'Pricing'].map(item => (
-            <a key={item} href="#"
+        <div className="hidden lg:flex" style={{ alignItems: 'center', gap: 2 }}>
+          {NAV_ITEMS.map(({ label, href }) => (
+            <a key={label} href={href}
               style={navLink}
               onMouseOver={e => { e.currentTarget.style.color = 'var(--n900)'; e.currentTarget.style.background = 'var(--track)' }}
               onMouseOut={e => { e.currentTarget.style.color = 'var(--n550)'; e.currentTarget.style.background = 'transparent' }}
-            >{item}</a>
+            >{label}</a>
           ))}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'clamp(4px, 1.5vw, 8px)', flexShrink: 0 }}>
           <ThemeToggle />
           <Link to="/login"
-            style={{ ...navLink, padding: '8px 16px' }}
+            style={{ ...navLink, padding: '8px clamp(8px, 3vw, 16px)', whiteSpace: 'nowrap' }}
             onMouseOver={e => { e.currentTarget.style.color = 'var(--n900)'; e.currentTarget.style.background = 'var(--track)' }}
             onMouseOut={e => { e.currentTarget.style.color = 'var(--n550)'; e.currentTarget.style.background = 'transparent' }}
           >Sign in</Link>
           <Link to="/signup" style={{
             fontSize: 14, fontWeight: 600, color: 'var(--on-ink)', textDecoration: 'none',
-            padding: '9px 22px', borderRadius: 99, background: 'var(--ink)',
-            letterSpacing: '-0.01em', display: 'inline-block',
+            padding: '9px clamp(14px, 4vw, 22px)', borderRadius: 99, background: 'var(--ink)',
+            letterSpacing: '-0.01em', display: 'inline-block', whiteSpace: 'nowrap',
           }}>Get started</Link>
         </div>
       </nav>
@@ -401,17 +465,18 @@ export default function Landing() {
             >
               Start tracking free
             </button>
-            <button style={{
+            <a href="#features" style={{
               display: 'inline-flex', alignItems: 'center', gap: 8,
               background: 'transparent', color: 'var(--n700)',
               padding: '13px 24px', borderRadius: 99,
               fontSize: 15, fontWeight: 500,
               border: '1.5px solid var(--border-3)', cursor: 'pointer',
               letterSpacing: '-0.01em', fontFamily: 'inherit',
+              textDecoration: 'none',
             }}>
               <span style={{ fontSize: 11, lineHeight: 1 }}>▶</span>
               See how it works
-            </button>
+            </a>
           </div>
 
           <p style={{ fontSize: 13, color: 'var(--n300)', margin: 0, letterSpacing: '0.01em' }}>
@@ -419,6 +484,146 @@ export default function Landing() {
           </p>
         </div>
       </section>
+
+      {/* ── Features / how it works ── */}
+      <section id="features" style={{ padding: '110px 40px 100px', maxWidth: 1120, margin: '0 auto' }}>
+        <Reveal>
+          <div style={{ textAlign: 'center', marginBottom: 64 }}>
+            <span style={{
+              display: 'inline-block', fontSize: 12, fontWeight: 700, letterSpacing: '0.08em',
+              textTransform: 'uppercase', color: 'var(--accent)',
+              background: 'rgba(124,58,237,0.1)', padding: '6px 14px', borderRadius: 999, marginBottom: 18,
+            }}>How it works</span>
+            <h2 style={{ fontSize: 'clamp(32px, 4.5vw, 44px)', fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--n900)', margin: '0 0 14px' }}>
+              Three habits. <em className="serif-accent">One dashboard.</em>
+            </h2>
+            <p style={{ fontSize: 16, color: 'var(--n400)', maxWidth: 480, margin: '0 auto' }}>
+              Spendly fits around how students actually spend — cash, canteen, rickshaw, rent.
+            </p>
+          </div>
+        </Reveal>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24 }}>
+          <FeatureCard delay={0} emoji="⚡" title="Log a day in seconds" desc="Tap a preset — lunch, rickshaw, tea — or fire off a whole 'Uni Day' template in one shot. No forms, no friction." />
+          <FeatureCard delay={90} emoji="🧾" title="A statement that means something" desc="Every week, see what you spent vs. last week, weekday vs. weekend, and exactly where every taka went." />
+          <FeatureCard delay={180} emoji="🎯" title="A budget that talks back" desc="Set a monthly number once. Spendly tracks it live — daily allowance, days left, and a nudge before you're over." />
+        </div>
+      </section>
+
+      {/* ── Budgets ── */}
+      <section id="budgets" style={{ padding: '20px 40px 110px', maxWidth: 1120, margin: '0 auto' }}>
+        <Reveal>
+          <div
+            className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center"
+            style={{
+              background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 28,
+              padding: 'clamp(32px, 5vw, 56px)', boxShadow: 'var(--shadow-card)',
+            }}
+          >
+            <div>
+              <span style={{ display: 'inline-block', fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#22c55e', background: 'rgba(34,197,94,0.1)', padding: '6px 14px', borderRadius: 999, marginBottom: 18 }}>
+                Budgets
+              </span>
+              <h2 style={{ fontSize: 'clamp(28px, 4vw, 38px)', fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--n900)', margin: '0 0 14px' }}>
+                Set it once. <em className="serif-accent">Know it daily.</em>
+              </h2>
+              <p style={{ fontSize: 15.5, color: 'var(--n400)', lineHeight: 1.65, margin: '0 0 22px', maxWidth: 420 }}>
+                One monthly number becomes a live ring on your dashboard — how much is left, what you can spend per day, and a heads-up before you go over.
+              </p>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {['Daily allowance, recalculated automatically', 'Weekday vs weekend spending split', 'A gentle nudge before you go over'].map(item => (
+                  <li key={item} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 14.5, color: 'var(--n600)' }}>
+                    <span style={{ color: '#22c55e', fontWeight: 700, flexShrink: 0 }}>✓</span>{item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <BudgetShowcase />
+            </div>
+          </div>
+        </Reveal>
+      </section>
+
+      {/* ── For students ── */}
+      <section id="students" style={{ padding: '20px 40px 110px' }}>
+        <Reveal>
+          <div style={{
+            maxWidth: 1120, margin: '0 auto', borderRadius: 28, padding: 'clamp(40px, 6vw, 64px)',
+            textAlign: 'center', position: 'relative', overflow: 'hidden',
+            background: 'linear-gradient(160deg, rgba(124,58,237,0.08), rgba(59,130,246,0.05))',
+            border: '1px solid var(--border)',
+          }}>
+            <span style={{ display: 'inline-block', fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 18 }}>
+              Built for BRAC students
+            </span>
+            <h2 style={{ fontSize: 'clamp(28px, 4vw, 38px)', fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--n900)', margin: '0 0 16px' }}>
+              Taka in, <em className="serif-accent">taka tracked.</em>
+            </h2>
+            <p style={{ fontSize: 16, color: 'var(--n500)', maxWidth: 560, margin: '0 auto 32px', lineHeight: 1.65 }}>
+              No bank linking, no card required. Just log what you actually spend — canteen, rickshaw, rent split with roommates — in the currency you actually use.
+            </p>
+            <div style={{ display: 'flex', gap: 32, justifyContent: 'center', flexWrap: 'wrap' }}>
+              {[
+                { emoji: '৳', label: 'BDT native' },
+                { emoji: '🎓', label: 'Free for students' },
+                { emoji: '🔒', label: 'Your data, your account' },
+              ].map(s => (
+                <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14.5, fontWeight: 600, color: 'var(--n700)' }}>
+                  <span style={{ fontSize: 20 }}>{s.emoji}</span>{s.label}
+                </div>
+              ))}
+            </div>
+          </div>
+        </Reveal>
+      </section>
+
+      {/* ── Pricing ── */}
+      <section id="pricing" style={{ padding: '20px 40px 130px' }}>
+        <Reveal>
+          <div style={{ maxWidth: 440, margin: '0 auto', textAlign: 'center' }}>
+            <span style={{ display: 'inline-block', fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--n400)', marginBottom: 18 }}>
+              Pricing
+            </span>
+            <h2 style={{ fontSize: 'clamp(28px, 4vw, 36px)', fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--n900)', margin: '0 0 28px' }}>
+              Free. <em className="serif-accent">Forever.</em>
+            </h2>
+            <div style={{
+              background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 24,
+              padding: '36px 32px', boxShadow: 'var(--shadow-pop)',
+            }}>
+              <p style={{ fontSize: 44, fontWeight: 900, color: 'var(--n900)', letterSpacing: '-0.03em', margin: '0 0 4px' }}>৳0</p>
+              <p style={{ fontSize: 13, color: 'var(--n350)', margin: '0 0 26px' }}>per month, no catch</p>
+              <div style={{ height: 1, background: 'var(--track)', margin: '0 0 22px' }} />
+              <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 26px', display: 'flex', flexDirection: 'column', gap: 12, textAlign: 'left' }}>
+                {['Unlimited expense logging', 'Weekly + monthly statements', 'Budgets, templates & quick log', 'CSV export, anytime'].map(item => (
+                  <li key={item} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14.5, color: 'var(--n700)' }}>
+                    <span style={{ color: '#22c55e', fontWeight: 700 }}>✓</span>{item}
+                  </li>
+                ))}
+              </ul>
+              <Link to="/signup" style={{
+                display: 'block', background: 'var(--ink)', color: 'var(--on-ink)',
+                padding: '13px', borderRadius: 99, fontSize: 15, fontWeight: 600,
+                textDecoration: 'none', letterSpacing: '-0.01em',
+              }}>
+                Create free account
+              </Link>
+            </div>
+          </div>
+        </Reveal>
+      </section>
+
+      {/* ── Footer ── */}
+      <footer style={{ borderTop: '1px solid var(--border)', padding: '32px 40px' }}>
+        <div style={{
+          maxWidth: 1120, margin: '0 auto', display: 'flex', alignItems: 'center',
+          justifyContent: 'space-between', flexWrap: 'wrap', gap: 16,
+        }}>
+          <Logo size={26} word wordSize={14} />
+          <p style={{ fontSize: 13, color: 'var(--n300)', margin: 0 }}>Built for BRAC students · ৳ BDT</p>
+        </div>
+      </footer>
     </div>
   )
 }

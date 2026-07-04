@@ -72,16 +72,16 @@
 
   --bg: #0a0a0a;
   --surface: #111111;
-  --surface-2: #1b1b1b;
+  --surface-2: #181818;
   --elevated: #161616;
-  --track: #242424;
-  --hairline: #1c1c1c;
+  --track: #202020;
+  --hairline: #171717;
   --row-hover: #161616;
 
-  --border: #232323;
-  --border-2: #2a2a2a;
-  --border-3: #353535;
-  --border-soft: #202020;
+  --border: #1a1a1a;
+  --border-2: #262626;
+  --border-3: #333333;
+  --border-soft: #191919;
 
   --ink: #ededed;
   --on-ink: #0d0d0d;
@@ -94,8 +94,8 @@
   --n600: #bcbcc2;
   --n550: #a6a6ad;
   --n500: #909097;
-  --n400: #78787f;
-  --n350: #6a6a71;
+  --n400: #888890;
+  --n350: #6f6f77;
   --n300: #5c5c63;
   --n250: #505057;
   --n200: #44444b;
@@ -178,9 +178,10 @@ input[type="number"]::-webkit-outer-spin-button {
   color: var(--n500);
   border: 1.5px solid var(--border-2);
   cursor: pointer;
-  transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+  transition: background-color 0.15s, color 0.15s, border-color 0.15s, transform 0.08s;
 }
 .btn-soft:hover { background-color: var(--surface-2); color: var(--n900); border-color: var(--border-3); }
+.btn-soft:active { transform: translateY(1px); }
 
 /* ── Links ── */
 .link-ink {
@@ -202,9 +203,10 @@ input[type="number"]::-webkit-outer-spin-button {
 /* ── Nav ── */
 .nav-link {
   text-decoration: none;
-  transition: color 0.15s, background-color 0.15s;
+  transition: color 0.15s, background-color 0.15s, transform 0.15s;
 }
-.nav-link:hover { color: var(--n900) !important; background-color: var(--track) !important; }
+.nav-link:hover { color: var(--n900) !important; background-color: var(--track) !important; transform: translateY(-1px); }
+.nav-link:active { transform: translateY(0); }
 .nav-link.active { color: var(--n900) !important; background-color: var(--track) !important; }
 
 /* ── List row hover ── */
@@ -385,3 +387,95 @@ html { scroll-behavior: smooth; }
   100% { box-shadow: 0 0 0 0 rgba(124,58,237,0); }
 }
 .btn-pulse { animation: btn-pulse 1.8s ease-out infinite; }
+
+/* continuously-flowing accent bar — ambient motion, no interaction needed */
+.accent-bar {
+  background: linear-gradient(90deg, #7c3aed, #3b82f6, #22c55e, #7c3aed);
+  background-size: 200% 100%;
+  animation: accent-flow 7s linear infinite;
+}
+@keyframes accent-flow {
+  0%   { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+/* brief glow when a counted-up number settles into place */
+@keyframes count-glow {
+  0%, 55%  { text-shadow: none; }
+  70%      { text-shadow: 0 0 20px rgba(124,58,237,0.55); }
+  100%     { text-shadow: none; }
+}
+.count-glow { animation: count-glow 1.15s ease-out both; }
+
+/* week navigator arrows */
+.nav-arrow {
+  width: 36px; height: 36px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 999px; border: 1.5px solid var(--border-2);
+  background: var(--surface); color: var(--n600);
+  font-size: 18px; line-height: 1; cursor: pointer;
+  transition: background-color 0.15s, color 0.15s, border-color 0.15s, transform 0.08s;
+}
+.nav-arrow:hover:not(:disabled) { background: var(--surface-2); color: var(--n900); border-color: var(--border-3); }
+.nav-arrow:active:not(:disabled) { transform: scale(0.94); }
+
+/* statement bars grow in on mount */
+@keyframes bar-grow {
+  from { transform: scaleY(0); }
+  to   { transform: scaleY(1); }
+}
+.bar-grow {
+  transform-origin: bottom;
+  animation: bar-grow 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+  transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ── Mobile tap targets — bump primary buttons to a comfortable
+   thumb-friendly height without touching dense chip/pill grids
+   (those use their own inline styles, not .btn-ink/.btn-soft). ── */
+@media (max-width: 640px) {
+  .btn-ink, .btn-soft { min-height: 48px; }
+  .nav-arrow { width: 44px; height: 44px; font-size: 20px; }
+}
+
+/* theme toggle icon swap — small pop + spin on change */
+@keyframes theme-icon-pop {
+  0%   { transform: rotate(-90deg) scale(0.3); opacity: 0; }
+  100% { transform: rotate(0deg) scale(1); opacity: 1; }
+}
+.theme-icon-pop { animation: theme-icon-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+
+/* ── Modals / bottom sheets ── */
+.modal-scrim {
+  position: fixed; inset: 0; z-index: 100;
+  background: var(--scrim);
+  display: flex; align-items: flex-end; justify-content: center;
+  padding: 0;
+  animation: overlay-in 0.18s ease both;
+}
+@media (min-width: 640px) {
+  .modal-scrim { align-items: center; padding: 24px; }
+}
+@keyframes sheet-up {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.modal-sheet {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  width: 100%;
+  max-width: 460px;
+  max-height: 92vh;
+  overflow-y: auto;
+  border-radius: 24px 24px 0 0;
+  box-shadow: var(--shadow-modal);
+  animation: sheet-up 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+@media (min-width: 640px) {
+  .modal-sheet { border-radius: 24px; }
+}
+
+/* big tap-target press feedback for day-type / option tiles */
+.tile-press { transition: transform 0.09s ease, border-color 0.15s, background-color 0.15s; }
+.tile-press:active { transform: scale(0.97); }

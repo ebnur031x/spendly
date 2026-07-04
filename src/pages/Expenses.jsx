@@ -1,7 +1,11 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { useToast } from '../context/ToastContext'
 import { CATEGORIES, CATEGORY_TYPES, getCategoryMeta } from '../lib/categories'
+import { dayKey, parseKey, expenseDay, addDays } from '../lib/dates'
+import { insertExpenses } from '../lib/expenses'
+import Reveal from '../components/Reveal'
 
 /* ── helpers ─────────────────────────────────────────── */
 
@@ -10,22 +14,6 @@ const fmt = (n) =>
 const fmt0 = (n) =>
   `৳${Number(n).toLocaleString('en-US', { maximumFractionDigits: 0 })}`
 
-function dayKey(d) {
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const dd = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${dd}`
-}
-function parseKey(key) {
-  const [y, m, d] = key.split('-').map(Number)
-  return new Date(y, m - 1, d)
-}
-// the day an expense belongs to: explicit date, else the day it was logged
-function expenseDay(e) {
-  if (e.date) return e.date
-  if (e.created_at) return dayKey(new Date(e.created_at))
-  return null
-}
 function expenseHour(e) {
   return e.created_at ? new Date(e.created_at).getHours() : 12
 }
@@ -69,9 +57,11 @@ const inputStyle = {
 
 export default function Expenses() {
   const { user } = useAuth()
+  const { toast } = useToast()
   const [expenses, setExpenses] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const pendingDeletes = useRef(new Map()) // id -> { item, timer }
 
   const todayKey = dayKey(new Date())
   const [selectedDay, setSelectedDay] = useState(todayKey)
@@ -114,30 +104,50 @@ export default function Expenses() {
     let finalTitle = title.trim() || getCategoryMeta(category).label
     if (category === 'Food' && place) finalTitle += ` (${place})`
 
-    const { data, error } = await supabase
-      .from('expenses')
-      .insert({
-        user_id: user.id,
-        title: finalTitle,
-        amount: amt,
-        category: getCategoryMeta(category).type, // DB constraint: must be fixed|variable|oneoff
-        date: selectedDay,
-      })
-      .select()
-      .single()
+    const row = {
+      user_id: user.id,
+      title: finalTitle,
+      amount: amt,
+      category: getCategoryMeta(category).type, // DB constraint: must be fixed|variable|oneoff
+      category_name: category, // specific category (Rent, Gym, Food…) for breakdowns
+      date: selectedDay,
+    }
+    const { data, error } = await insertExpenses([row])
 
     if (error) setError(error.message)
     else {
-      setExpenses(prev => [data, ...prev])
+      setExpenses(prev => [data[0], ...prev])
       setTitle(''); setAmount(''); setPlace('')
     }
     setSaving(false)
   }
 
-  async function handleDelete(id) {
+  // Optimistic remove with a real undo window — the actual delete only
+  // hits Supabase once the toast times out without being undone.
+  function handleDelete(id) {
+    const item = expenses.find(e => e.id === id)
+    if (!item) return
     setExpenses(prev => prev.filter(e => e.id !== id))
-    const { error } = await supabase.from('expenses').delete().eq('id', id)
-    if (error) { setError(error.message); fetchExpenses() }
+
+    const timer = setTimeout(async () => {
+      pendingDeletes.current.delete(id)
+      const { error } = await supabase.from('expenses').delete().eq('id', id)
+      if (error) { setError(error.message); fetchExpenses() }
+    }, 4200)
+    pendingDeletes.current.set(id, { item, timer })
+
+    toast({
+      icon: '🗑️',
+      message: `Deleted "${item.title}"`,
+      actionLabel: 'Undo',
+      onAction: () => {
+        const pending = pendingDeletes.current.get(id)
+        if (!pending) return
+        clearTimeout(pending.timer)
+        pendingDeletes.current.delete(id)
+        setExpenses(prev => [pending.item, ...prev].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)))
+      },
+    })
   }
 
   /* derived */
@@ -146,13 +156,21 @@ export default function Expenses() {
     [expenses],
   )
 
+  // rolling window: 13 days back → 7 days ahead, widened to include the
+  // selected day if it's picked outside that range (via the date picker)
   const stripDays = useMemo(() => {
     const base = new Date(); base.setHours(0, 0, 0, 0)
-    return Array.from({ length: 14 }, (_, i) => {
-      const d = new Date(base); d.setDate(base.getDate() - (13 - i))
-      return { key: dayKey(d), date: d }
-    })
-  }, [])
+    let start = addDays(base, -13)
+    let end = addDays(base, 7)
+    const selDate = parseKey(selectedDay)
+    if (selDate < start) start = selDate
+    if (selDate > end) end = selDate
+    const days = []
+    for (let d = new Date(start); d <= end; d = addDays(d, 1)) {
+      days.push({ key: dayKey(d), date: new Date(d) })
+    }
+    return days
+  }, [selectedDay])
 
   const dayExpenses = useMemo(
     () => expenses
@@ -181,26 +199,23 @@ export default function Expenses() {
 
   const sel = parseKey(selectedDay)
   const isToday = selectedDay === todayKey
+  const isFuture = selectedDay > todayKey
   const dayWeekday = sel.toLocaleDateString(undefined, { weekday: 'long' })
   const dayRest = sel.toLocaleDateString(undefined, { day: 'numeric', month: 'long' })
 
-  // keep the strip scrolled to today on load
+  // center the strip on the selected day (today by default) on load / selection
   const stripRef = useRef(null)
+  const selRef = useRef(null)
   useEffect(() => {
-    if (stripRef.current) stripRef.current.scrollLeft = stripRef.current.scrollWidth
-  }, [loading])
+    const c = stripRef.current, el = selRef.current
+    if (c && el) c.scrollLeft = el.offsetLeft - c.clientWidth / 2 + el.clientWidth / 2
+  }, [loading, selectedDay])
 
   const canSave = !!amount && parseFloat(amount) > 0
 
   return (
-    <main className="min-h-screen px-4 sm:px-8 py-10 max-w-3xl mx-auto fade-up" style={{ position: 'relative' }}>
-      {/* soft ambient lift */}
-      <div style={{
-        position: 'absolute', top: 0, left: 0, right: 0, height: 360, pointerEvents: 'none', zIndex: 0,
-        background: 'radial-gradient(ellipse 70% 100% at 50% 0%, rgba(124,58,237,0.06) 0%, transparent 70%)',
-      }} />
-
-      <div style={{ position: 'relative', zIndex: 1 }}>
+    <main className="min-h-screen px-5 sm:px-8 pt-6 sm:pt-10 pb-28 md:pb-10 max-w-2xl mx-auto fade-up">
+      <div>
 
         {/* Header */}
         <div className="flex items-end justify-between mb-6">
@@ -221,36 +236,52 @@ export default function Expenses() {
         </div>
 
         {/* Day strip */}
+        <Reveal delay={0}>
         <div className="card p-4 mb-4">
-          <div className="flex items-center justify-between mb-3 px-1">
+          <div className="flex items-center justify-between mb-3 px-1 gap-2">
             <span className="text-xs font-semibold uppercase" style={{ color: 'var(--n400)', letterSpacing: '0.06em' }}>
               {sel.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
             </span>
-            {!isToday && (
-              <button
-                onClick={() => setSelectedDay(todayKey)}
-                className="text-xs font-semibold"
-                style={{ color: 'var(--accent)' }}
-              >
-                Jump to today →
-              </button>
-            )}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <input
+                type="date"
+                value={selectedDay}
+                onChange={e => e.target.value && setSelectedDay(e.target.value)}
+                aria-label="Pick any date"
+                className="text-xs font-semibold rounded-full px-2.5 py-1 cursor-pointer"
+                style={{ background: 'var(--surface-2)', border: '1.5px solid var(--border-2)', color: 'var(--n600)' }}
+              />
+              {!isToday && (
+                <button
+                  onClick={() => setSelectedDay(todayKey)}
+                  className="text-xs font-semibold whitespace-nowrap"
+                  style={{ color: 'var(--accent)' }}
+                >
+                  Today →
+                </button>
+              )}
+            </div>
           </div>
           <div ref={stripRef} className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
             {stripDays.map(({ key, date }) => {
               const active = key === selectedDay
               const today = key === todayKey
+              const future = key > todayKey
               const has = daysWithExpense.has(key)
               return (
                 <button
                   key={key}
+                  ref={active ? selRef : null}
                   onClick={() => setSelectedDay(key)}
                   className="day-pill flex flex-col items-center justify-center flex-shrink-0 rounded-2xl"
                   style={{
                     width: 52, height: 64,
                     background: active ? 'var(--ink)' : 'var(--surface-2)',
-                    border: today && !active ? '1.5px solid var(--accent)' : '1.5px solid transparent',
+                    border: today && !active ? '1.5px solid var(--accent)'
+                      : future && !active ? '1.5px dashed var(--border-3)'
+                      : '1.5px solid transparent',
                     color: active ? 'var(--on-ink)' : 'var(--n500)',
+                    opacity: future && !active ? 0.72 : 1,
                   }}
                 >
                   <span className="text-[10px] font-semibold uppercase" style={{ opacity: active ? 0.7 : 1, letterSpacing: '0.04em' }}>
@@ -268,20 +299,22 @@ export default function Expenses() {
             })}
           </div>
         </div>
+        </Reveal>
 
         {/* Composer */}
-        <div className="card mb-4" style={{ position: 'relative', overflow: 'hidden' }}>
-          {/* top accent */}
-          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: 'linear-gradient(90deg, #7c3aed, #3b82f6, #22c55e)' }} />
-
-          <form onSubmit={handleSave} className="p-6 pt-7">
+        <Reveal delay={70}>
+        <div className="card mb-4">
+          <form onSubmit={handleSave} className="p-6">
             <div className="flex items-center justify-between mb-4">
               <span className="text-xs font-semibold uppercase" style={{ color: 'var(--n400)', letterSpacing: '0.07em' }}>
                 New expense
               </span>
               <span className="text-xs font-medium px-2.5 py-1 rounded-full"
-                style={{ background: 'var(--surface-2)', color: 'var(--n500)' }}>
-                {isToday ? 'Today' : dayWeekday} · {sel.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
+                style={{
+                  background: isFuture ? 'rgba(124,58,237,0.12)' : 'var(--surface-2)',
+                  color: isFuture ? 'var(--accent)' : 'var(--n500)',
+                }}>
+                {isToday ? 'Today' : dayWeekday} · {sel.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}{isFuture ? ' · upcoming' : ''}
               </span>
             </div>
 
@@ -421,6 +454,7 @@ export default function Expenses() {
             )}
           </form>
         </div>
+        </Reveal>
 
         {error && (
           <div className="mb-4 rounded-xl px-4 py-3 text-sm"
@@ -430,6 +464,7 @@ export default function Expenses() {
         )}
 
         {/* Day summary */}
+        <Reveal delay={140}>
         <div className="flex items-end justify-between mb-3 px-1">
           <div className="flex items-baseline gap-2">
             <h2 className="text-lg font-bold" style={{ color: 'var(--n900)' }}>
@@ -475,11 +510,13 @@ export default function Expenses() {
           </div>
         ) : dayExpenses.length === 0 ? (
           <div className="card py-16 text-center">
-            <p className="text-4xl mb-3">🗓️</p>
+            <p className="text-4xl mb-3">{isFuture ? '📅' : '🗓️'}</p>
             <p className="text-sm" style={{ color: 'var(--n350)' }}>
-              Nothing logged for {isToday ? 'today' : 'this day'} yet.
+              {isFuture ? 'Nothing planned for this day yet.' : `Nothing logged for ${isToday ? 'today' : 'this day'} yet.`}
             </p>
-            <p className="text-xs mt-1" style={{ color: 'var(--n300)' }}>Add your first expense above ↑</p>
+            <p className="text-xs mt-1" style={{ color: 'var(--n300)' }}>
+              {isFuture ? 'Add an upcoming expense above ↑' : 'Add your first expense above ↑'}
+            </p>
           </div>
         ) : (
           <div className="flex flex-col gap-5">
@@ -528,6 +565,7 @@ export default function Expenses() {
             })}
           </div>
         )}
+        </Reveal>
       </div>
     </main>
   )

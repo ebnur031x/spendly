@@ -6,8 +6,8 @@ import Signup from './pages/Signup'
 import Landing from './pages/Landing'
 import Dashboard from './pages/Dashboard'
 import Expenses from './pages/Expenses'
-import Templates from './pages/Templates'
 import Navbar from './components/Navbar'
+import BottomNav from './components/BottomNav'
 
 function App() {
   return (
@@ -23,6 +23,7 @@ function App() {
               <ProtectedRoute>
                 <Navbar />
                 <Dashboard />
+                <BottomNav />
               </ProtectedRoute>
             }
           />
@@ -32,15 +33,7 @@ function App() {
               <ProtectedRoute>
                 <Navbar />
                 <Expenses />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/templates"
-            element={
-              <ProtectedRoute>
-                <Navbar />
-                <Templates />
+                <BottomNav />
               </ProtectedRoute>
             }
           />

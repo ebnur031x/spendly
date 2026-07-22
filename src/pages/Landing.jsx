@@ -52,7 +52,7 @@ function TransactionCard() {
   // Deliberately dark in both themes — reads like a phone screenshot.
   return (
     <div style={{
-      background: '#1a1a1a',
+      background: '#21262d',
       color: '#f0f0f0',
       borderRadius: 18,
       padding: '12px 16px',

@@ -70,15 +70,15 @@
 :root[data-theme="dark"] {
   color-scheme: dark;
 
-  --bg: #0a0a0a;
-  --surface: #111111;
+  --bg: #0d1117;
+  --surface: #161b22;
   --surface-2: #181818;
   --elevated: #161616;
   --track: #202020;
   --hairline: #171717;
   --row-hover: #161616;
 
-  --border: #1a1a1a;
+  --border: #21262d;
   --border-2: #262626;
   --border-3: #333333;
   --border-soft: #191919;
@@ -88,13 +88,13 @@
   --ink-hover: #d2d2d2;
 
   /* neutral ramp inverts — higher number = brighter on dark */
-  --n900: #f4f4f5;
+  --n900: #e6edf3;
   --n800: #e8e8ea;
   --n700: #d2d2d6;
   --n600: #bcbcc2;
   --n550: #a6a6ad;
   --n500: #909097;
-  --n400: #888890;
+  --n400: #8b949e;
   --n350: #6f6f77;
   --n300: #5c5c63;
   --n250: #505057;
@@ -195,9 +195,15 @@ input[type="number"]::-webkit-outer-spin-button {
 /* ── Cards ── */
 .card {
   background-color: var(--surface);
-  border: 1px solid var(--border);
+  border: 2px solid var(--border);
   border-radius: 20px;
   box-shadow: var(--shadow-card);
+}
+/* Dark cards get a subtle top-down gradient + soft drop shadow so they read
+   as "lifted" off the near-black background rather than flat panels. */
+:root[data-theme="dark"] .card {
+  background-image: linear-gradient(145deg, #1c222b, #12161d);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 6px 20px rgba(0, 0, 0, 0.35);
 }
 
 /* ── Nav ── */

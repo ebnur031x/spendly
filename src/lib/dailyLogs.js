@@ -23,6 +23,19 @@ export function listDailyLogsForMonth(userId, month) {
     .order('date', { ascending: false })
 }
 
+export function updateDailyLog(id, { date, day_type_id, expenses, total_spent, notes }) {
+  return supabase.from('daily_logs')
+    .update({
+      date,
+      day_type_id: day_type_id || null,
+      expenses,
+      total_spent,
+      notes: notes || null,
+    })
+    .eq('id', id)
+    .select().single()
+}
+
 export function deleteDailyLog(id) {
   return supabase.from('daily_logs').delete().eq('id', id)
 }

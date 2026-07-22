@@ -1,7 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 
-// Fixed iOS-style tab bar — mobile only. Two tabs flank a raised center
-// Log button, which is the always-visible entry point to Log Today.
 export default function BottomNav() {
   const { pathname } = useLocation()
   const navigate = useNavigate()
@@ -20,6 +18,7 @@ export default function BottomNav() {
       }}
     >
       <Tab to="/dashboard" label="Home" active={pathname === '/dashboard'} Icon={HomeIcon} />
+      <Tab to="/expenses" label="Expenses" active={pathname === '/expenses'} Icon={ReceiptIcon} />
 
       <div className="flex-1 flex items-start justify-center" style={{ minHeight: 58 }}>
         <button
@@ -36,7 +35,7 @@ export default function BottomNav() {
         </button>
       </div>
 
-      <Tab to="/expenses" label="Expenses" active={pathname === '/expenses'} Icon={ReceiptIcon} />
+      <Tab to="/savings" label="Savings" active={pathname === '/savings'} Icon={PiggyIcon} />
     </nav>
   )
 }
@@ -81,3 +80,17 @@ function ReceiptIcon({ active }) {
     </svg>
   )
 }
+
+function PiggyIcon({ active }) {
+  return (
+    <svg width="23" height="23" viewBox="0 0 24 24" fill="none">
+      <ellipse cx="10" cy="13" rx="6" ry="5" stroke="currentColor" strokeWidth={active ? 2.2 : 1.9}
+        fill={active ? 'currentColor' : 'none'} fillOpacity={active ? 0.12 : 0} />
+      <path d="M16 13c1.1 0 2-.9 2-2s-.9-2-2-2" stroke="currentColor" strokeWidth={active ? 2.2 : 1.9} strokeLinecap="round" />
+      <path d="M10 8V6" stroke="currentColor" strokeWidth={active ? 2.2 : 1.9} strokeLinecap="round" />
+      <path d="M7.5 17.5 6 20M12.5 17.5 14 20" stroke="currentColor" strokeWidth={active ? 2 : 1.7} strokeLinecap="round" />
+      <circle cx="8" cy="13" r="0.8" fill="currentColor" />
+    </svg>
+  )
+}
+

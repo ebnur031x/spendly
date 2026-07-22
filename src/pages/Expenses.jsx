@@ -6,6 +6,7 @@ import { CATEGORIES, CATEGORY_TYPES, getCategoryMeta } from '../lib/categories'
 import { dayKey, parseKey, expenseDay, addDays } from '../lib/dates'
 import { insertExpenses } from '../lib/expenses'
 import Reveal from '../components/Reveal'
+import LogTodayModal from '../components/LogTodayModal'
 
 /* ── helpers ─────────────────────────────────────────── */
 
@@ -22,7 +23,6 @@ function expenseTime(e) {
   return new Date(e.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
 }
 
-// daily quick-add presets — only the things a student logs every day
 const PRESETS = [
   { label: 'Breakfast', emoji: '🍳', category: 'Food' },
   { label: 'Lunch', emoji: '🍱', category: 'Food' },
@@ -53,15 +53,27 @@ const inputStyle = {
   color: 'var(--n900)',
 }
 
+const editBtnStyle = {
+  width: 28, height: 28, borderRadius: '50%',
+  background: 'var(--surface-2)',
+  border: '1.5px solid var(--border-soft)',
+  color: 'var(--n500)',
+  fontSize: 12, cursor: 'pointer',
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+  flexShrink: 0,
+}
+
 /* ── page ────────────────────────────────────────────── */
 
 export default function Expenses() {
   const { user } = useAuth()
   const { toast } = useToast()
   const [expenses, setExpenses] = useState([])
+  const [dailyLogs, setDailyLogs] = useState([])
+  const [dayTypes, setDayTypes] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const pendingDeletes = useRef(new Map()) // id -> { item, timer }
+  const pendingDeletes = useRef(new Map())
 
   const todayKey = dayKey(new Date())
   const [selectedDay, setSelectedDay] = useState(todayKey)
@@ -70,19 +82,36 @@ export default function Expenses() {
   const [title, setTitle] = useState('')
   const [amount, setAmount] = useState('')
   const [category, setCategory] = useState('Food')
-  const [place, setPlace] = useState('') // home | out (food only)
+  const [place, setPlace] = useState('')
   const [showCats, setShowCats] = useState(false)
   const [saving, setSaving] = useState(false)
   const amountRef = useRef(null)
 
-  useEffect(() => { fetchExpenses() }, [])
+  // edit modal (regular expenses only)
+  const [editing, setEditing] = useState(null) // { type: 'expense', id }
+  const [editTitle, setEditTitle] = useState('')
+  const [editAmount, setEditAmount] = useState('')
+  const [editDate, setEditDate] = useState('')
+  const [editCategory, setEditCategory] = useState('Food')
+  const [editShowCats, setEditShowCats] = useState(false)
+  const [savingEdit, setSavingEdit] = useState(false)
 
-  async function fetchExpenses() {
+  // day log full-form edit
+  const [logToEdit, setLogToEdit] = useState(null)
+
+  useEffect(() => { fetchData() }, [])
+
+  async function fetchData() {
     setLoading(true)
-    const { data, error } = await supabase
-      .from('expenses').select('*').order('created_at', { ascending: false })
-    if (error) setError(error.message)
-    else setExpenses(data ?? [])
+    const [expRes, logRes, dtRes] = await Promise.all([
+      supabase.from('expenses').select('*').order('created_at', { ascending: false }),
+      supabase.from('daily_logs').select('*').eq('user_id', user.id).order('date', { ascending: false }),
+      supabase.from('day_types').select('*').eq('user_id', user.id),
+    ])
+    if (expRes.error) setError(expRes.error.message)
+    setExpenses(expRes.data ?? [])
+    setDailyLogs(logRes.data ?? [])
+    setDayTypes(dtRes.data ?? [])
     setLoading(false)
   }
 
@@ -108,8 +137,8 @@ export default function Expenses() {
       user_id: user.id,
       title: finalTitle,
       amount: amt,
-      category: getCategoryMeta(category).type, // DB constraint: must be fixed|variable|oneoff
-      category_name: category, // specific category (Rent, Gym, Food…) for breakdowns
+      category: getCategoryMeta(category).type,
+      category_name: category,
       date: selectedDay,
     }
     const { data, error } = await insertExpenses([row])
@@ -122,8 +151,6 @@ export default function Expenses() {
     setSaving(false)
   }
 
-  // Optimistic remove with a real undo window — the actual delete only
-  // hits Supabase once the toast times out without being undone.
   function handleDelete(id) {
     const item = expenses.find(e => e.id === id)
     if (!item) return
@@ -132,7 +159,7 @@ export default function Expenses() {
     const timer = setTimeout(async () => {
       pendingDeletes.current.delete(id)
       const { error } = await supabase.from('expenses').delete().eq('id', id)
-      if (error) { setError(error.message); fetchExpenses() }
+      if (error) { setError(error.message); fetchData() }
     }, 4200)
     pendingDeletes.current.set(id, { item, timer })
 
@@ -150,14 +177,69 @@ export default function Expenses() {
     })
   }
 
-  /* derived */
-  const daysWithExpense = useMemo(
-    () => new Set(expenses.map(expenseDay).filter(Boolean)),
-    [expenses],
-  )
+  async function handleDeleteLogItem(log, itemIndex) {
+    if (itemIndex === -1) {
+      const { error: err } = await supabase.from('daily_logs').delete().eq('id', log.id)
+      if (err) setError(err.message)
+      else setDailyLogs(prev => prev.filter(l => l.id !== log.id))
+    } else {
+      const newExps = (log.expenses || []).filter((_, i) => i !== itemIndex)
+      const hasRemaining = newExps.some(e => e.label && Number(e.amount) > 0)
+      if (!hasRemaining) {
+        const { error: err } = await supabase.from('daily_logs').delete().eq('id', log.id)
+        if (err) setError(err.message)
+        else setDailyLogs(prev => prev.filter(l => l.id !== log.id))
+      } else {
+        const newTotal = newExps.reduce((s, e) => s + (Number(e.amount) || 0), 0)
+        const { error: err } = await supabase.from('daily_logs')
+          .update({ expenses: newExps, total_spent: newTotal }).eq('id', log.id)
+        if (err) setError(err.message)
+        else setDailyLogs(prev => prev.map(l => l.id === log.id ? { ...l, expenses: newExps, total_spent: newTotal } : l))
+      }
+    }
+  }
 
-  // rolling window: 13 days back → 7 days ahead, widened to include the
-  // selected day if it's picked outside that range (via the date picker)
+  function openEdit(exp) {
+    setEditing({ type: 'expense', id: exp.id })
+    setEditTitle(exp.title || '')
+    setEditAmount(String(exp.amount))
+    setEditDate(expenseDay(exp) || todayKey)
+    setEditCategory(exp.category_name || 'Food')
+    setEditShowCats(false)
+  }
+
+  async function handleSaveEdit() {
+    if (!editing || savingEdit) return
+    const newAmt = parseFloat(editAmount)
+    if (!(newAmt > 0)) return
+    setSavingEdit(true)
+
+    const meta = getCategoryMeta(editCategory)
+    const { data, error: err } = await supabase.from('expenses')
+      .update({
+        title: editTitle.trim() || meta.label,
+        amount: newAmt,
+        date: editDate,
+        category: meta.type,
+        category_name: editCategory,
+      })
+      .eq('id', editing.id)
+      .select()
+      .single()
+    if (err) setError(err.message)
+    else if (data) setExpenses(prev => prev.map(e => e.id === editing.id ? data : e))
+
+    setSavingEdit(false)
+    setEditing(null)
+  }
+
+  /* derived */
+  const daysWithExpense = useMemo(() => {
+    const s = new Set(expenses.map(expenseDay).filter(Boolean))
+    dailyLogs.forEach(l => l.date && s.add(l.date))
+    return s
+  }, [expenses, dailyLogs])
+
   const stripDays = useMemo(() => {
     const base = new Date(); base.setHours(0, 0, 0, 0)
     let start = addDays(base, -13)
@@ -178,13 +260,26 @@ export default function Expenses() {
       .sort((a, b) => new Date(a.created_at) - new Date(b.created_at)),
     [expenses, selectedDay],
   )
-  const dayTotal = dayExpenses.reduce((s, e) => s + Number(e.amount), 0)
+
+  const dayLogs = useMemo(
+    () => dailyLogs.filter(l => l.date === selectedDay),
+    [dailyLogs, selectedDay],
+  )
+
+  const dayTotal = useMemo(() => {
+    const expTotal = dayExpenses.reduce((s, e) => s + Number(e.amount), 0)
+    const logTotal = dayLogs.reduce((s, l) => s + (Number(l.total_spent) || 0), 0)
+    return expTotal + logTotal
+  }, [dayExpenses, dayLogs])
 
   const dayByCat = useMemo(() => {
     const m = {}
     dayExpenses.forEach(e => { m[e.category] = (m[e.category] || 0) + Number(e.amount) })
+    dayLogs.forEach(l => {
+      if (Number(l.total_spent) > 0) m['variable'] = (m['variable'] || 0) + Number(l.total_spent)
+    })
     return Object.entries(m).sort((a, b) => b[1] - a[1])
-  }, [dayExpenses])
+  }, [dayExpenses, dayLogs])
 
   const grouped = PARTS
     .map(p => ({ ...p, items: dayExpenses.filter(e => partOfDay(expenseHour(e)) === p.key) }))
@@ -192,10 +287,14 @@ export default function Expenses() {
 
   const monthTotal = useMemo(() => {
     const mk = todayKey.slice(0, 7)
-    return expenses
+    const expTotal = expenses
       .filter(e => (expenseDay(e) || '').startsWith(mk))
       .reduce((s, e) => s + Number(e.amount), 0)
-  }, [expenses, todayKey])
+    const logTotal = dailyLogs
+      .filter(l => (l.date || '').startsWith(mk))
+      .reduce((s, l) => s + (Number(l.total_spent) || 0), 0)
+    return expTotal + logTotal
+  }, [expenses, dailyLogs, todayKey])
 
   const sel = parseKey(selectedDay)
   const isToday = selectedDay === todayKey
@@ -203,7 +302,6 @@ export default function Expenses() {
   const dayWeekday = sel.toLocaleDateString(undefined, { weekday: 'long' })
   const dayRest = sel.toLocaleDateString(undefined, { day: 'numeric', month: 'long' })
 
-  // center the strip on the selected day (today by default) on load / selection
   const stripRef = useRef(null)
   const selRef = useRef(null)
   useEffect(() => {
@@ -212,6 +310,7 @@ export default function Expenses() {
   }, [loading, selectedDay])
 
   const canSave = !!amount && parseFloat(amount) > 0
+  const hasAnything = dayExpenses.length > 0 || dayLogs.length > 0
 
   return (
     <main className="min-h-screen px-5 sm:px-8 pt-6 sm:pt-10 pb-28 md:pb-10 max-w-2xl mx-auto fade-up">
@@ -318,7 +417,6 @@ export default function Expenses() {
               </span>
             </div>
 
-            {/* amount hero + save */}
             <div className="flex items-center gap-3 mb-4">
               <div className="flex items-center flex-1 rounded-2xl px-4" style={{ background: 'var(--surface-2)', border: '1.5px solid var(--border-2)' }}>
                 <span className="text-2xl font-bold mr-1" style={{ color: 'var(--n300)' }}>৳</span>
@@ -344,7 +442,6 @@ export default function Expenses() {
               </button>
             </div>
 
-            {/* description */}
             <input
               value={title}
               onChange={e => setTitle(e.target.value)}
@@ -353,7 +450,6 @@ export default function Expenses() {
               style={inputStyle}
             />
 
-            {/* quick presets */}
             <p className="text-xs font-semibold uppercase mb-2" style={{ color: 'var(--n400)', letterSpacing: '0.06em' }}>Quick add</p>
             <div className="flex flex-wrap gap-2 mb-4">
               {PRESETS.map(p => {
@@ -377,7 +473,6 @@ export default function Expenses() {
               })}
             </div>
 
-            {/* food: home / out */}
             {category === 'Food' && (
               <div className="flex items-center gap-2 mb-4">
                 <span className="text-xs font-medium" style={{ color: 'var(--n400)' }}>Where?</span>
@@ -405,7 +500,6 @@ export default function Expenses() {
               </div>
             )}
 
-            {/* category — compact, expandable */}
             <div className="flex items-center justify-between pt-1">
               <div className="flex items-center gap-2">
                 <span className="text-xs" style={{ color: 'var(--n400)' }}>Category</span>
@@ -479,7 +573,7 @@ export default function Expenses() {
           </div>
         </div>
 
-        {/* category segment bar for the day */}
+        {/* category segment bar */}
         {dayTotal > 0 && (
           <div className="mb-5 px-1">
             <div className="flex h-2.5 rounded-full overflow-hidden" style={{ background: 'var(--track)' }}>
@@ -503,12 +597,12 @@ export default function Expenses() {
           </div>
         )}
 
-        {/* Day list grouped by part of day */}
+        {/* Day list */}
         {loading ? (
           <div className="card flex justify-center py-16">
             <div className="w-4 h-4 rounded-full border-2 animate-spin" style={{ borderColor: 'var(--border-2)', borderTopColor: 'var(--ink)' }} />
           </div>
-        ) : dayExpenses.length === 0 ? (
+        ) : !hasAnything ? (
           <div className="card py-16 text-center">
             <p className="text-4xl mb-3">{isFuture ? '📅' : '🗓️'}</p>
             <p className="text-sm" style={{ color: 'var(--n350)' }}>
@@ -520,6 +614,8 @@ export default function Expenses() {
           </div>
         ) : (
           <div className="flex flex-col gap-5">
+
+            {/* Regular expenses grouped by time of day */}
             {grouped.map(group => {
               const subtotal = group.items.reduce((s, e) => s + Number(e.amount), 0)
               return (
@@ -551,8 +647,9 @@ export default function Expenses() {
                                 <span className="text-xs tabular-nums" style={{ color: 'var(--n250)' }}>· {expenseTime(exp)}</span>
                               </div>
                             </div>
-                            <div className="flex items-center gap-3 flex-shrink-0">
+                            <div className="flex items-center gap-2 flex-shrink-0">
                               <span className="text-sm font-semibold tabular-nums" style={{ color: 'var(--n900)' }}>−{fmt(exp.amount)}</span>
+                              <button onClick={() => openEdit(exp)} title="Edit" style={editBtnStyle}>✎</button>
                               <button onClick={() => handleDelete(exp.id)} className="btn-delete" title="Delete">×</button>
                             </div>
                           </li>
@@ -563,10 +660,202 @@ export default function Expenses() {
                 </div>
               )
             })}
+
+            {/* Day logs (from Log Today / day type flow) */}
+            {dayLogs.map(log => {
+              const dt = dayTypes.find(d => d.id === log.day_type_id)
+              const items = (log.expenses || [])
+                .map((item, rawIdx) => ({ ...item, rawIdx }))
+                .filter(item => item.label && Number(item.amount) > 0 && !/descr|note/i.test(item.label || ''))
+
+              return (
+                <div key={log.id}>
+                  <div className="flex items-center justify-between mb-2 px-1">
+                    <span className="flex items-center gap-2 text-xs font-bold uppercase" style={{ color: dt?.color || 'var(--accent)', letterSpacing: '0.06em' }}>
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: dt?.color || 'var(--accent)', display: 'inline-block', flexShrink: 0 }} />
+                      {dt?.name || 'Day Log'}
+                    </span>
+                    <span className="text-xs font-semibold tabular-nums" style={{ color: 'var(--n400)' }}>{fmt0(log.total_spent)}</span>
+                  </div>
+                  <div className="card overflow-hidden">
+                    <ul>
+                      {items.length > 0 ? items.map((item, i) => (
+                        <li
+                          key={item.rawIdx}
+                          className="row-hover flex items-center gap-3 px-4 sm:px-5 py-3.5"
+                          style={{ borderBottom: i < items.length - 1 ? '1px solid var(--hairline)' : 'none' }}
+                        >
+                          <div className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center"
+                            style={{ backgroundColor: `${dt?.color || '#6366f1'}1a` }}>
+                            <span style={{ fontSize: 16 }}>📋</span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate" style={{ color: 'var(--n800)' }}>{item.label}</p>
+                            <span className="text-xs font-medium" style={{ color: dt?.color || 'var(--n400)' }}>
+                              {dt?.name || 'Day log'}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <span className="text-sm font-semibold tabular-nums" style={{ color: 'var(--n900)' }}>−{fmt(item.amount)}</span>
+                            <button onClick={() => setLogToEdit(log)} title="Edit" style={editBtnStyle}>✎</button>
+                            <button onClick={() => handleDeleteLogItem(log, item.rawIdx)} className="btn-delete" title="Delete">×</button>
+                          </div>
+                        </li>
+                      )) : (
+                        <li className="row-hover flex items-center gap-3 px-4 sm:px-5 py-3.5">
+                          <div className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center"
+                            style={{ backgroundColor: `${dt?.color || '#6366f1'}1a` }}>
+                            <span style={{ fontSize: 16 }}>📋</span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium" style={{ color: 'var(--n800)' }}>{dt?.name || 'Day log'}</p>
+                            <span className="text-xs" style={{ color: 'var(--n400)' }}>Total spend for the day</span>
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <span className="text-sm font-semibold tabular-nums" style={{ color: 'var(--n900)' }}>−{fmt(log.total_spent)}</span>
+                            <button onClick={() => setLogToEdit(log)} title="Edit" style={editBtnStyle}>✎</button>
+                            <button onClick={() => handleDeleteLogItem(log, -1)} className="btn-delete" title="Delete">×</button>
+                          </div>
+                        </li>
+                      )}
+                    </ul>
+                  </div>
+                </div>
+              )
+            })}
+
           </div>
         )}
         </Reveal>
       </div>
+
+      {/* Day log full-form edit */}
+      {logToEdit && (
+        <LogTodayModal
+          userId={user.id}
+          dayTypes={dayTypes}
+          initialType={dayTypes.find(d => d.id === logToEdit.day_type_id) ?? null}
+          initialLog={logToEdit}
+          onClose={() => setLogToEdit(null)}
+          onSaved={() => { setLogToEdit(null); fetchData() }}
+        />
+      )}
+
+      {/* Edit modal — regular expenses only */}
+      {editing && (
+        <div
+          style={{ position: 'fixed', inset: 0, zIndex: 70, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', padding: '0 16px' }}
+          onClick={() => !savingEdit && setEditing(null)}
+        >
+          <div
+            className="card w-full max-w-lg mb-4"
+            style={{ padding: 24, borderRadius: 20 }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-5">
+              <h2 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--n900)', letterSpacing: '-0.02em' }}>Edit expense</h2>
+              <button
+                onClick={() => setEditing(null)}
+                style={{ ...editBtnStyle, fontSize: 14 }}
+              >✕</button>
+            </div>
+
+            <input
+              value={editTitle}
+              onChange={e => setEditTitle(e.target.value)}
+              placeholder="Description"
+              className="w-full rounded-xl px-3.5 py-2.5 text-sm mb-3"
+              style={inputStyle}
+              autoFocus
+            />
+
+            {/* Date */}
+            <div className="flex items-center justify-between mb-3 px-1">
+              <span className="text-xs font-semibold uppercase" style={{ color: 'var(--n400)', letterSpacing: '0.06em' }}>Date</span>
+              <input
+                type="date"
+                value={editDate}
+                onChange={e => e.target.value && setEditDate(e.target.value)}
+                className="text-xs font-semibold rounded-full px-3 py-1.5 cursor-pointer"
+                style={{ background: 'var(--surface-2)', border: '1.5px solid var(--border-2)', color: 'var(--n700)' }}
+              />
+            </div>
+
+            {/* Amount */}
+            <div className="flex items-center rounded-2xl px-4 mb-4" style={{ background: 'var(--surface-2)', border: '1.5px solid var(--border-2)' }}>
+              <span className="text-2xl font-bold mr-1" style={{ color: 'var(--n300)' }}>৳</span>
+              <input
+                type="number"
+                min="0.01"
+                step="0.01"
+                value={editAmount}
+                onChange={e => setEditAmount(e.target.value)}
+                placeholder="0"
+                className="w-full py-3 text-3xl font-extrabold tabular-nums"
+                style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--n900)', letterSpacing: '-0.02em' }}
+              />
+            </div>
+
+            {/* Category picker */}
+            <div className="mb-4">
+                <div className="flex items-center justify-between pt-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs" style={{ color: 'var(--n400)' }}>Category</span>
+                    <span className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full"
+                      style={{ background: `${getCategoryMeta(editCategory).color}1f`, color: getCategoryMeta(editCategory).color }}>
+                      {getCategoryMeta(editCategory).emoji} {getCategoryMeta(editCategory).label}
+                    </span>
+                  </div>
+                  <button type="button" onClick={() => setEditShowCats(v => !v)} className="text-xs font-semibold" style={{ color: 'var(--n500)' }}>
+                    {editShowCats ? 'Done' : 'Change ⌄'}
+                  </button>
+                </div>
+                {editShowCats && (
+                  <div className="mt-3 pt-4" style={{ borderTop: '1px solid var(--hairline)' }}>
+                    {[
+                      { key: 'variable', label: 'Everyday' },
+                      { key: 'fixed', label: 'Fixed' },
+                      { key: 'oneoff', label: 'One-off' },
+                    ].map(({ key, label }) => (
+                      <div key={key} className="mb-3 last:mb-0">
+                        <p className="text-[11px] font-medium mb-1.5" style={{ color: CATEGORY_TYPES[key].color }}>{label}</p>
+                        <div className="flex flex-wrap gap-2">
+                          {CATEGORIES.filter(c => c.type === key).map(c => {
+                            const on = editCategory === c.name
+                            return (
+                              <button
+                                key={c.name}
+                                type="button"
+                                onClick={() => setEditCategory(c.name)}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium"
+                                style={{
+                                  border: '1.5px solid ' + (on ? 'var(--ink)' : 'var(--border)'),
+                                  background: on ? 'var(--ink)' : 'var(--surface)',
+                                  color: on ? 'var(--on-ink)' : 'var(--n550)',
+                                }}
+                              >
+                                <span style={{ fontSize: 13 }}>{c.emoji}</span>{c.name}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+            </div>
+
+            <button
+              onClick={handleSaveEdit}
+              disabled={savingEdit || !(parseFloat(editAmount) > 0)}
+              className="btn-ink w-full font-semibold rounded-xl"
+              style={{ padding: '12px', fontSize: 15, opacity: savingEdit || !(parseFloat(editAmount) > 0) ? 0.45 : 1 }}
+            >
+              {savingEdit ? 'Saving…' : 'Save changes'}
+            </button>
+          </div>
+        </div>
+      )}
     </main>
   )
 }

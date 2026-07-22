@@ -1,11 +1,11 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import ThemeToggle from './ThemeToggle'
 import Logo from './Logo'
 
 const links = [
   { to: '/dashboard', label: 'Overview' },
   { to: '/expenses', label: 'Expenses' },
+  { to: '/savings', label: 'Savings' },
 ]
 
 export default function Navbar() {
@@ -48,10 +48,13 @@ export default function Navbar() {
       </div>
 
       <div className="flex items-center gap-2 flex-shrink-0">
-        <button onClick={openLog} className="btn-ink text-sm font-semibold px-4 py-2 rounded-full flex items-center gap-1.5">
+        <button
+          onClick={openLog}
+          className="text-sm rounded-full flex items-center gap-1.5 px-4 py-2"
+          style={{ background: '#ffffff', color: '#000000', fontWeight: 600, border: '1.5px solid rgba(0,0,0,0.1)', cursor: 'pointer' }}
+        >
           <span style={{ fontSize: 15, lineHeight: 1 }}>＋</span> Log Today
         </button>
-        <ThemeToggle />
         <button onClick={handleSignOut} className="btn-soft text-sm font-medium px-3.5 py-1.5 rounded-full">Sign out</button>
       </div>
     </nav>

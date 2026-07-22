@@ -6,6 +6,7 @@ import Signup from './pages/Signup'
 import Landing from './pages/Landing'
 import Dashboard from './pages/Dashboard'
 import Expenses from './pages/Expenses'
+import Savings from './pages/Savings'
 import Navbar from './components/Navbar'
 import BottomNav from './components/BottomNav'
 
@@ -33,6 +34,16 @@ function App() {
               <ProtectedRoute>
                 <Navbar />
                 <Expenses />
+                <BottomNav />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/savings"
+            element={
+              <ProtectedRoute>
+                <Navbar />
+                <Savings />
                 <BottomNav />
               </ProtectedRoute>
             }

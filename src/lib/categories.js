@@ -1,7 +1,7 @@
 export const CATEGORY_TYPES = {
-  fixed:    { label: 'Fixed',    color: '#818cf8', badge: 'rgba(129,140,248,0.12)', emoji: '🏦' },
-  variable: { label: 'Variable', color: '#fbbf24', badge: 'rgba(251,191,36,0.12)',  emoji: '🛒' },
-  oneoff:   { label: 'One-off',  color: '#f472b6', badge: 'rgba(244,114,182,0.12)', emoji: '⚡' },
+  fixed:    { label: 'Fixed',    color: '#1e3a5f', badge: 'rgba(30,58,95,0.25)',   emoji: '🏦' },
+  variable: { label: 'Variable', color: '#334155', badge: 'rgba(51,65,85,0.25)',   emoji: '🛒' },
+  oneoff:   { label: 'One-off',  color: '#3b1f2b', badge: 'rgba(59,31,43,0.25)',   emoji: '⚡' },
 }
 
 export const CATEGORIES = [

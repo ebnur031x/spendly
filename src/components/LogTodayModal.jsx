@@ -3,6 +3,7 @@ import { money0 } from '../lib/format'
 import { dayKey } from '../lib/dates'
 import { isTextField } from '../lib/dayTypes'
 import { createDailyLog, updateDailyLog } from '../lib/dailyLogs'
+import BucketMismatchWarning from './BucketMismatchWarning'
 
 // Two-step "log a whole day":
 //   1. pick a day type (big tap targets: color + icon + name)
@@ -149,7 +150,8 @@ export default function LogTodayModal({ userId, dayTypes, initialType = null, in
                   const displayLabel = localLabels[f.label] ?? f.label
                   const isEditingThisLabel = editingLabelIdx === i
                   return (
-                    <div key={i} className="flex items-center gap-2 px-3 py-2.5 rounded-xl"
+                    <div key={i}>
+                    <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl"
                       style={{ background: 'var(--surface-2)', border: '1px solid var(--border-soft)' }}>
 
                       {/* label area */}
@@ -206,12 +208,15 @@ export default function LogTodayModal({ userId, dayTypes, initialType = null, in
                         </div>
                       )}
                     </div>
+                    {!isEditingThisLabel && <BucketMismatchWarning text={displayLabel} currentBucket="daily" />}
+                    </div>
                   )
                 })}
 
                 {/* ad-hoc extras */}
                 {extras.map((ex, i) => (
-                  <div key={`ex-${i}`} className="flex items-center gap-2 px-3 py-2.5 rounded-xl"
+                  <div key={`ex-${i}`}>
+                  <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl"
                     style={{ background: 'var(--surface-2)', border: '1px dashed var(--border-2)' }}>
                     <input
                       value={ex.label}
@@ -237,6 +242,8 @@ export default function LogTodayModal({ userId, dayTypes, initialType = null, in
                       className="btn-delete flex-shrink-0"
                       title="Remove"
                     >×</button>
+                  </div>
+                  <BucketMismatchWarning text={ex.label} currentBucket="daily" />
                   </div>
                 ))}
 

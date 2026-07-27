@@ -76,3 +76,58 @@ alter table daily_logs enable row level security;
 drop policy if exists "own daily_logs" on daily_logs;
 create policy "own daily_logs" on daily_logs for all to authenticated
   using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- ════════════════════════════════════════════════════════════════
+-- FOUR BUCKETS restructure (Daily Spend · Groceries · Bills · Commitments)
+-- Additive + idempotent. Nothing is dropped; existing data is preserved.
+-- ════════════════════════════════════════════════════════════════
+
+-- 5. expenses.bucket — daily | groceries | bills ───────────
+--    Commitments are NOT expenses; they live in fixed_costs (below).
+alter table expenses add column if not exists bucket text not null default 'daily';
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'expenses_bucket_check') then
+    alter table expenses add constraint expenses_bucket_check
+      check (bucket in ('daily','groceries','bills'));
+  end if;
+end $$;
+create index if not exists expenses_user_bucket_idx on expenses (user_id, bucket);
+
+-- 6. fixed_costs → Commitments store ───────────────────────
+--    month = null       → standing template ("Rent ৳8000, monthly")
+--    month = 'YYYY-MM'   → materialized, fully-editable entry for that month
+alter table fixed_costs add column if not exists month text;
+alter table fixed_costs add column if not exists template_id uuid references fixed_costs(id) on delete cascade;
+alter table fixed_costs add column if not exists due_date date;
+alter table fixed_costs add column if not exists recurrence text not null default 'monthly';
+alter table fixed_costs add column if not exists active boolean not null default true;
+alter table fixed_costs add column if not exists last_generated_month text;
+create index if not exists fixed_costs_user_month_idx on fixed_costs (user_id, month);
+
+-- 7. bucket_settings — per-user config for each of the 4 buckets ─
+create table if not exists bucket_settings (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  bucket text not null check (bucket in ('daily','groceries','bills','commitments')),
+  mini_budget numeric,
+  cap_period text not null default 'monthly' check (cap_period in ('monthly','daily')),
+  icon text,
+  color text,
+  created_at timestamptz default now(),
+  unique (user_id, bucket)
+);
+alter table bucket_settings enable row level security;
+drop policy if exists "own bucket_settings" on bucket_settings;
+create policy "own bucket_settings" on bucket_settings for all to authenticated
+  using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- ════════════════════════════════════════════════════════════════
+-- DATA MIGRATION — run once, AFTER the schema above.
+-- Review your data first:
+--   select category, category_name, count(*), sum(amount)
+--   from expenses group by category, category_name order by 1, 2;
+-- Then assign buckets (safe to re-run):
+-- ════════════════════════════════════════════════════════════════
+update expenses set bucket = 'daily' where category = 'variable';
+update expenses set bucket = 'bills' where category in ('fixed','oneoff');

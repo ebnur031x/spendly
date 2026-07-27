@@ -80,13 +80,59 @@ create index if not exists daily_logs_user_date_idx on daily_logs (user_id, date
 alter table daily_logs enable row level security;
 drop policy if exists "own daily_logs" on daily_logs;
 create policy "own daily_logs" on daily_logs for all to authenticated
+  using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- ══════════════════════════════════════════════════════════
+-- FOUR BUCKETS restructure. Adds a bucket axis to expenses, turns
+-- fixed_costs into the Commitments store (templates + monthly instances),
+-- and adds per-bucket settings. Everything below is additive + idempotent.
+-- ══════════════════════════════════════════════════════════
+
+-- 5. expenses.bucket — daily | groceries | bills ───────────
+--    (Commitments are NOT expenses; they live in fixed_costs.)
+alter table expenses add column if not exists bucket text not null default 'daily';
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'expenses_bucket_check') then
+    alter table expenses add constraint expenses_bucket_check
+      check (bucket in ('daily','groceries','bills'));
+  end if;
+end $$;
+create index if not exists expenses_user_bucket_idx on expenses (user_id, bucket);
+
+-- 6. fixed_costs → Commitments store ───────────────────────
+--    month = null  → a standing template ("Rent ৳8000, monthly")
+--    month = 'YYYY-MM' → a materialized, fully-editable entry for that month
+alter table fixed_costs add column if not exists month text;
+alter table fixed_costs add column if not exists template_id uuid references fixed_costs(id) on delete cascade;
+alter table fixed_costs add column if not exists due_date date;
+alter table fixed_costs add column if not exists recurrence text not null default 'monthly';
+alter table fixed_costs add column if not exists active boolean not null default true;
+alter table fixed_costs add column if not exists last_generated_month text;
+create index if not exists fixed_costs_user_month_idx on fixed_costs (user_id, month);
+
+-- 7. bucket_settings — per-user config for each of the 4 buckets ─
+create table if not exists bucket_settings (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  bucket text not null check (bucket in ('daily','groceries','bills','commitments')),
+  mini_budget numeric,
+  cap_period text not null default 'monthly' check (cap_period in ('monthly','daily')),
+  icon text,
+  color text,
+  created_at timestamptz default now(),
+  unique (user_id, bucket)
+);
+alter table bucket_settings enable row level security;
+drop policy if exists "own bucket_settings" on bucket_settings;
+create policy "own bucket_settings" on bucket_settings for all to authenticated
   using (auth.uid() = user_id) with check (auth.uid() = user_id);`
 
 // Postgres error codes we treat as "the redesign schema isn't set up yet":
 //   42P01 → undefined_table (a new table doesn't exist)
 //   42703 → undefined_column (budgets is missing main_monthly_budget etc.)
 const MISSING_CODES = new Set(['42P01', '42703'])
-const MISSING_RE = /fixed_costs|day_types|daily_logs|main_monthly_budget|budget_mode|does not exist|schema cache/i
+const MISSING_RE = /fixed_costs|day_types|daily_logs|bucket_settings|main_monthly_budget|budget_mode|expenses\.bucket|column .*bucket|does not exist|schema cache/i
 
 export function isMissingSchema(error) {
   if (!error) return false

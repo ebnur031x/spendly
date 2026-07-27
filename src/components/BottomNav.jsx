@@ -18,7 +18,7 @@ export default function BottomNav() {
       }}
     >
       <Tab to="/dashboard" label="Home" active={pathname === '/dashboard'} Icon={HomeIcon} />
-      <Tab to="/expenses" label="Expenses" active={pathname === '/expenses'} Icon={ReceiptIcon} />
+      <Tab to="/daily" label="Daily" active={pathname === '/daily'} Icon={ReceiptIcon} />
 
       <div className="flex-1 flex items-start justify-center" style={{ minHeight: 58 }}>
         <button

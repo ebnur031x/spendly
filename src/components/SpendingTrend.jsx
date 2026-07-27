@@ -121,15 +121,25 @@ export default function SpendingTrend({
     const weekday = dateObj.toLocaleString('default', { weekday: 'long' })
 
     const expenses = monthExpenses.filter(e => e.date === dateStr)
-    const log = dailyLogs.find(l => l.date === dateStr)
-    const dt = log ? dayTypes.find(d => d.id === log.day_type_id) : null
-    const logItems = (log?.expenses ?? []).filter(x => !/descr|note/i.test(x.label || ''))
+    // A date can have more than one Log Today entry (nothing currently stops
+    // creating a second one) — aggregate ALL of them so nothing is silently
+    // hidden, and surface a warning when that's actually the case.
+    const logsForDay = dailyLogs.filter(l => l.date === dateStr)
+    const dt = logsForDay.length === 1 ? dayTypes.find(d => d.id === logsForDay[0].day_type_id) : null
+    const dayTypeNames = logsForDay.length > 1
+      ? logsForDay.map(l => dayTypes.find(d => d.id === l.day_type_id)?.name || 'Day log')
+      : []
+    const logItems = logsForDay.flatMap(log =>
+      (log.expenses ?? []).filter(x => !/descr|note/i.test(x.label || ''))
+    )
     const total = expenses.reduce((s, e) => s + (Number(e.amount) || 0), 0) +
-                  (log ? Number(log.total_spent) || 0 : 0)
+                  logsForDay.reduce((s, l) => s + (Number(l.total_spent) || 0), 0)
 
     tooltipData = {
       dateDisplay: `${monthStr} ${day} · ${weekday}`,
-      dt, expenses, logItems, total,
+      dt, dayTypeNames, expenses, logItems, total,
+      multipleLogs: logsForDay.length > 1,
+      logsCount: logsForDay.length,
     }
   }
 
@@ -189,6 +199,18 @@ export default function SpendingTrend({
                 <span style={{ fontSize: '0.65rem', fontWeight: 700, color: tooltipData.dt.color, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   {tooltipData.dt.name}
                 </span>
+              </span>
+            </div>
+          )}
+
+          {tooltipData.multipleLogs && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 5, marginBottom: 8,
+              background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.4)',
+              borderRadius: 8, padding: '4px 8px',
+            }}>
+              <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#f59e0b' }}>
+                ⚠ {tooltipData.logsCount} day logs for this date ({tooltipData.dayTypeNames.join(', ')})
               </span>
             </div>
           )}

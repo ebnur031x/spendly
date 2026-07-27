@@ -5,10 +5,24 @@ import Login from './pages/Login'
 import Signup from './pages/Signup'
 import Landing from './pages/Landing'
 import Dashboard from './pages/Dashboard'
-import Expenses from './pages/Expenses'
+import DailySpend from './pages/DailySpend'
+import BucketDetail from './pages/BucketDetail'
+import Commitments from './pages/Commitments'
+import AllTransactions from './pages/AllTransactions'
 import Savings from './pages/Savings'
 import Navbar from './components/Navbar'
 import BottomNav from './components/BottomNav'
+
+// Shared shell for signed-in screens: top nav + page + bottom nav.
+function Protected({ children }) {
+  return (
+    <ProtectedRoute>
+      <Navbar />
+      {children}
+      <BottomNav />
+    </ProtectedRoute>
+  )
+}
 
 function App() {
   return (
@@ -18,36 +32,17 @@ function App() {
           <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <Navbar />
-                <Dashboard />
-                <BottomNav />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/expenses"
-            element={
-              <ProtectedRoute>
-                <Navbar />
-                <Expenses />
-                <BottomNav />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/savings"
-            element={
-              <ProtectedRoute>
-                <Navbar />
-                <Savings />
-                <BottomNav />
-              </ProtectedRoute>
-            }
-          />
+
+          <Route path="/dashboard" element={<Protected><Dashboard /></Protected>} />
+          <Route path="/daily" element={<Protected><DailySpend /></Protected>} />
+          <Route path="/groceries" element={<Protected><BucketDetail bucketKey="groceries" /></Protected>} />
+          <Route path="/bills" element={<Protected><BucketDetail bucketKey="bills" /></Protected>} />
+          <Route path="/commitments" element={<Protected><Commitments /></Protected>} />
+          <Route path="/transactions" element={<Protected><AllTransactions /></Protected>} />
+          <Route path="/savings" element={<Protected><Savings /></Protected>} />
+
+          {/* Back-compat: the old Expenses route is now Daily Spend */}
+          <Route path="/expenses" element={<Navigate to="/daily" replace />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>

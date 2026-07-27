@@ -4,7 +4,8 @@ import Logo from './Logo'
 
 const links = [
   { to: '/dashboard', label: 'Overview' },
-  { to: '/expenses', label: 'Expenses' },
+  { to: '/daily', label: 'Daily' },
+  { to: '/transactions', label: 'All' },
   { to: '/savings', label: 'Savings' },
 ]
 

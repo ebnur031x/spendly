@@ -1,4 +1,4 @@
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import Logo from './Logo'
 
@@ -9,9 +9,19 @@ const links = [
   { to: '/savings', label: 'Savings' },
 ]
 
+// The month you're browsing has to survive a nav click, or "All" drops you
+// back on the real current month while the rest of the app is in August.
+// Only these two read ?month=; forwarding it elsewhere would be URL noise.
+const MONTH_AWARE = new Set(['/dashboard', '/transactions'])
+const MONTH_RE = /^\d{4}-\d{2}$/
+
 export default function Navbar() {
   const { pathname } = useLocation()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const monthParam = searchParams.get('month')
+  const month = monthParam && MONTH_RE.test(monthParam) ? monthParam : null
+  const hrefFor = to => (month && MONTH_AWARE.has(to) ? `${to}?month=${month}` : to)
 
   async function handleSignOut() {
     await supabase.auth.signOut()
@@ -38,7 +48,7 @@ export default function Navbar() {
           return (
             <Link
               key={to}
-              to={to}
+              to={hrefFor(to)}
               className="nav-link text-sm font-medium px-3 py-1.5 rounded-lg"
               style={{ color: active ? 'var(--n900)' : 'var(--n400)', background: active ? 'var(--track)' : 'transparent' }}
             >

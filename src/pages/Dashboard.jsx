@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react'
-import { useLocation, useNavigate, Link } from 'react-router-dom'
+import { useLocation, useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { money0 } from '../lib/format'
 import { monthKey, monthLabel, daysLeftInMonth, daysInMonth } from '../lib/dates'
 import { loadBudgetSnapshot } from '../lib/budget'
-import { upsertBudget } from '../lib/budgets'
 import { BUCKETS, bucketView, ensureBucketSettings } from '../lib/buckets'
 import { ensureCommitmentsMaterialized } from '../lib/commitments'
 import { listDayTypes, seedDefaultDayTypesIfEmpty } from '../lib/dayTypes'
@@ -13,27 +12,36 @@ import Reveal from '../components/Reveal'
 import BudgetRing from '../components/BudgetRing'
 import SpendingTrend from '../components/SpendingTrend'
 import BucketCard from '../components/BucketCard'
+import MonthNav from '../components/MonthNav'
 import { resolveCap } from '../components/MiniBudgetBar'
 import LogTodayModal from '../components/LogTodayModal'
 import SetupScreen from '../components/SetupScreen'
+
+const MONTH_RE = /^\d{4}-\d{2}$/
 
 export default function Dashboard() {
   const { user } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
-  const month = monthKey()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const monthParam = searchParams.get('month')
+  const month = monthParam && MONTH_RE.test(monthParam) ? monthParam : monthKey()
+  const isCurrentMonth = month === monthKey()
+
+  function goToMonth(m) {
+    if (m === monthKey()) setSearchParams({})
+    else setSearchParams({ month: m })
+  }
 
   const [loading, setLoading] = useState(true)
   const [snap, setSnap] = useState(null)
   const [dayTypes, setDayTypes] = useState([])
   const [log, setLog] = useState(null)
-  const [showBudgetEdit, setShowBudgetEdit] = useState(false)
-  const [budgetEditVal, setBudgetEditVal] = useState('')
   const [toast, setToast] = useState(location.state?.welcome ?? '')
   const [weather, setWeather] = useState(null)
   const [now, setNow] = useState(() => new Date())
 
-  useEffect(() => { load() /* eslint-disable-next-line */ }, [])
+  useEffect(() => { load() /* eslint-disable-next-line */ }, [month])
 
   useEffect(() => {
     if (!toast) return
@@ -63,9 +71,9 @@ export default function Dashboard() {
 
   async function load() {
     setLoading(true)
-    // Auto-reserve this month's commitments + make sure bucket settings exist,
-    // then read the snapshot so every number is up to date.
-    await ensureCommitmentsMaterialized(user.id, month)
+    // Auto-reserve commitments only for the real current month — browsing to
+    // a different month should only ever read data, never write it.
+    if (month === monthKey()) await ensureCommitmentsMaterialized(user.id, month)
     await ensureBucketSettings(user.id)
     const s = await loadBudgetSnapshot(user.id, month)
     setSnap(s)
@@ -77,19 +85,11 @@ export default function Dashboard() {
   }
 
   async function refresh() {
-    await ensureCommitmentsMaterialized(user.id, month)
+    if (month === monthKey()) await ensureCommitmentsMaterialized(user.id, month)
     const s = await loadBudgetSnapshot(user.id, month)
     setSnap(s)
     const { data } = await listDayTypes(user.id)
     setDayTypes(data ?? [])
-  }
-
-  async function saveBudget() {
-    const val = parseFloat(budgetEditVal)
-    if (!(val > 0)) return
-    setShowBudgetEdit(false)
-    await upsertBudget(user.id, { main_monthly_budget: val, budget_mode: snap.budgetMode ?? 'shared' }, month)
-    refresh()
   }
 
   function handleLogged() {
@@ -106,12 +106,32 @@ export default function Dashboard() {
 
   if (loading && !snap) return <FullSpinner />
   if (snap?.missingSchema) return <SetupScreen variant="schema" onRetry={load} />
-  if (!snap?.hasBudget) return <SetupScreen variant="budget" month={month} userId={user.id} onDone={refresh} />
+
+  if (!snap?.hasBudget) {
+    // Only the real current month gets the first-run onboarding flow. A past
+    // or future month with no row yet is just an empty state you can browse
+    // away from or set up ahead of time.
+    if (isCurrentMonth) return <SetupScreen variant="budget" month={month} userId={user.id} onDone={refresh} />
+    return (
+      <main className="min-h-screen px-5 sm:px-8 pt-6 sm:pt-10 pb-28 md:pb-10 max-w-2xl mx-auto fade-up">
+        <div className="flex items-center justify-between mb-7 gap-3">
+          <h1 className="text-2xl font-extrabold tracking-tight" style={{ color: 'var(--n900)', letterSpacing: '-0.03em' }}>{monthLabel(month)}</h1>
+          <MonthNav month={month} onChange={goToMonth} />
+        </div>
+        <div className="card p-8 text-center">
+          <p className="text-sm mb-4" style={{ color: 'var(--n400)' }}>No budget set for {monthLabel(month)} yet.</p>
+          <Link to={`/budget-settings?month=${month}`} className="btn-ink inline-block px-5 py-2.5 rounded-xl text-sm font-bold">
+            Set up this month's budget →
+          </Link>
+        </div>
+      </main>
+    )
+  }
 
   const { main, usedFraction, overBudget, dailyExpenses, dailyLogs } = snap
   const daysLeft = daysLeftInMonth()
   const dpm = daysInMonth(month)
-  const health = budgetHealth({ main, remaining, overBudget, daysLeft })
+  const health = budgetHealth({ main, remaining, overBudget, daysLeft, isCurrentMonth })
   const ringColor = health.color
   const heroSize = heroFontSize(overBudget ? `−${money0(Math.abs(remaining))}` : money0(remaining))
 
@@ -147,43 +167,28 @@ export default function Dashboard() {
         <LogTodayModal userId={user.id} dayTypes={dayTypes} initialType={log.type}
           onClose={() => setLog(null)} onSaved={handleLogged} />
       )}
-      {showBudgetEdit && (
-        <div className="modal-scrim" onClick={() => setShowBudgetEdit(false)}>
-          <div className="modal-sheet" onClick={e => e.stopPropagation()}>
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-5">
-                <h2 className="text-lg font-extrabold" style={{ color: 'var(--n900)', letterSpacing: '-0.02em' }}>Monthly budget</h2>
-                <button onClick={() => setShowBudgetEdit(false)} aria-label="Close"
-                  className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
-                  style={{ background: 'var(--surface-2)', color: 'var(--n400)', border: '1px solid var(--border-2)' }}>✕</button>
-              </div>
-              <div className="flex items-center rounded-xl px-4 py-3 mb-4" style={{ background: 'var(--surface-2)', border: '1.5px solid var(--border-2)' }}>
-                <span className="text-base mr-2" style={{ color: 'var(--n350)' }}>৳</span>
-                <input type="number" min="1" step="1" value={budgetEditVal}
-                  onChange={e => setBudgetEditVal(e.target.value)} onKeyDown={e => e.key === 'Enter' && saveBudget()}
-                  className="flex-1 text-base font-semibold tabular-nums"
-                  style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--n900)' }} autoFocus />
-              </div>
-              <button onClick={saveBudget} disabled={!(parseFloat(budgetEditVal) > 0)}
-                className="btn-ink w-full py-2.5 rounded-xl text-sm font-semibold">Save</button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Header */}
       <div className="flex items-center justify-between mb-7 gap-3 fade-up">
         <div>
           <p className="text-sm font-medium" style={{ color: 'var(--n400)' }}>
-            Good {greet}
-            {weather != null && (
-              <span style={{ marginLeft: 6, opacity: 0.85 }}>· {wxIcon(weather.code)} {Math.round(weather.temp)}°C</span>
+            {isCurrentMonth ? (
+              <>
+                Good {greet}
+                {weather != null && (
+                  <span style={{ marginLeft: 6, opacity: 0.85 }}>· {wxIcon(weather.code)} {Math.round(weather.temp)}°C</span>
+                )}
+              </>
+            ) : (
+              month < monthKey() ? 'Past month' : 'Upcoming month'
             )}
           </p>
-          <h1 className="text-2xl font-extrabold tracking-tight" style={{ color: 'var(--n900)', letterSpacing: '-0.03em' }}>{monthLabel(month)}</h1>
+          <div className="flex items-center gap-2 mt-0.5">
+            <h1 className="text-2xl font-extrabold tracking-tight" style={{ color: 'var(--n900)', letterSpacing: '-0.03em' }}>{monthLabel(month)}</h1>
+            <MonthNav month={month} onChange={goToMonth} />
+          </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
-          <Link to="/transactions" aria-label="Search all transactions"
+          <Link to={isCurrentMonth ? '/transactions' : `/transactions?month=${month}`} aria-label="Search all transactions"
             className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0"
             style={{ background: 'var(--surface-2)', border: '1.5px solid var(--border-2)', color: 'var(--n600)' }}>
             <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
@@ -191,11 +196,6 @@ export default function Dashboard() {
               <path d="M20 20L16.5 16.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
             </svg>
           </Link>
-          <button onClick={() => setLog({ type: null })}
-            className="px-5 rounded-full text-sm flex items-center gap-2 flex-shrink-0"
-            style={{ background: '#ffffff', color: '#000000', fontWeight: 600, border: '1.5px solid rgba(0,0,0,0.1)', minHeight: 48, cursor: 'pointer' }}>
-            <span style={{ fontSize: 16, lineHeight: 1 }}>＋</span> Log Today
-          </button>
         </div>
       </div>
 
@@ -208,22 +208,38 @@ export default function Dashboard() {
               {overBudget ? `−${money0(Math.abs(cuRemaining))}` : money0(cuRemaining)}
             </span>
             <span style={{ fontSize: '0.75rem', color: '#888', letterSpacing: '0.07em', marginTop: '0.4rem' }}>
-              {overBudget ? 'over budget' : 'left this month'}
+              {overBudget ? 'over budget' : isCurrentMonth ? 'left this month' : 'left unspent'}
             </span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 4 }}>
-              <span className="tabular-nums" style={{ fontSize: '0.7rem', color: 'var(--n350)' }}>of {money0(main)}</span>
-              <button onClick={() => { setBudgetEditVal(String(main)); setShowBudgetEdit(true) }}
-                className="btn-soft text-xs rounded-full font-semibold" style={{ fontSize: '0.65rem', padding: '1px 7px' }}>Edit</button>
-            </div>
+            {/* The ring keeps only the figure — editing moved to a real
+                button below, where it's actually findable. */}
+            <span className="tabular-nums" style={{ fontSize: '0.7rem', color: 'var(--n350)', marginTop: 4 }}>
+              of {money0(main)}
+            </span>
           </BudgetRing>
 
           <div className="flex items-center gap-2.5 mt-7">
             <StatPill value={money0(cuSpent)} label="spent" />
             <span style={{ color: 'var(--n250)' }}>·</span>
-            <StatPill value={String(daysLeft)} label={`day${daysLeft === 1 ? '' : 's'} left`} />
+            {isCurrentMonth
+              ? <StatPill value={String(daysLeft)} label={`day${daysLeft === 1 ? '' : 's'} left`} />
+              : <StatPill value={String(dpm)} label={`day${dpm === 1 ? '' : 's'} total`} />}
           </div>
 
           <p className="text-center mt-4" style={{ fontSize: '0.78rem', color: 'var(--n400)' }}>{health.emoji} {health.message}</p>
+
+          <Link to={`/budget-settings?month=${month}`}
+            className="btn-soft flex items-center justify-center gap-2 rounded-xl font-semibold mx-auto mt-5"
+            style={{ fontSize: '0.82rem', padding: '11px 20px', width: '100%', maxWidth: 300 }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth="2" strokeLinecap="round" aria-hidden>
+              <line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" />
+              <line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" />
+              <line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" />
+              <line x1="1" y1="14" x2="7" y2="14" /><line x1="9" y1="8" x2="15" y2="8" />
+              <line x1="17" y1="16" x2="23" y2="16" />
+            </svg>
+            Budget &amp; category caps
+          </Link>
         </div>
       </Reveal>
 
@@ -244,7 +260,8 @@ export default function Dashboard() {
       </Reveal>
 
       <div className="flex justify-center mb-4">
-        <Link to="/transactions" className="text-xs font-semibold" style={{ color: 'var(--n400)' }}>
+        <Link to={isCurrentMonth ? '/transactions' : `/transactions?month=${month}`}
+          className="text-xs font-semibold" style={{ color: 'var(--n400)' }}>
           See all transactions →
         </Link>
       </div>
@@ -270,9 +287,12 @@ function wxIcon(code) {
   return '⛈️'
 }
 
-function budgetHealth({ main, remaining, overBudget, daysLeft }) {
-  const perDay = money0(Math.abs(remaining) / Math.max(1, daysLeft))
+function budgetHealth({ main, remaining, overBudget, daysLeft, isCurrentMonth }) {
   if (overBudget) return { level: 'over', color: '#ef4444', emoji: '🔴', message: `Over budget by ${money0(Math.abs(remaining))}` }
+  // "Per day" pacing only makes sense while the month is actually live —
+  // for a past or future month, just state what's left.
+  if (!isCurrentMonth) return { level: 'good', color: '#22c55e', emoji: '🟢', message: `${money0(remaining)} left unspent` }
+  const perDay = money0(Math.abs(remaining) / Math.max(1, daysLeft))
   const remFrac = main > 0 ? remaining / main : 0
   if (remFrac > 0.5) return { level: 'good', color: '#22c55e', emoji: '🟢', message: `On track — ${perDay} per day available` }
   if (remFrac >= 0.2) return { level: 'watch', color: '#f59e0b', emoji: '🟡', message: `Watch your spending — ${perDay} per day left` }

@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { money, money0 } from '../lib/format'
-import { dayKey, parseKey, addDays, startOfWeek, monthKey, monthRange } from '../lib/dates'
+import { dayKey, parseKey, addDays, startOfWeek, monthKey, monthRange, monthName } from '../lib/dates'
 import { loadAllTransactions } from '../lib/transactions'
 import { BUCKETS, bucketMeta } from '../lib/buckets'
 import Reveal from '../components/Reveal'
@@ -16,14 +17,23 @@ const PRESETS = [
   { key: 'custom', label: 'Custom' },
 ]
 
-function presetRange(key) {
+const MONTH_RE = /^\d{4}-\d{2}$/
+
+// `month` is the month being browsed (?month=), not necessarily the real
+// current one — arriving here from an August dashboard used to show July
+// because this hardcoded monthKey().
+function presetRange(key, month = monthKey()) {
   const today = dayKey(new Date())
   switch (key) {
     case '7d': return { start: dayKey(addDays(new Date(), -6)), end: today }
     case '5d': return { start: dayKey(addDays(new Date(), -4)), end: today }
     case '14d': return { start: dayKey(addDays(new Date(), -13)), end: today }
     case 'week': { const s = startOfWeek(new Date()); return { start: dayKey(s), end: dayKey(addDays(s, 6)) } }
-    case 'month': { const { start } = monthRange(monthKey()); const [y, m] = monthKey().split('-').map(Number); return { start, end: dayKey(new Date(y, m, 0)) } }
+    case 'month': {
+      const { start } = monthRange(month)
+      const [y, m] = month.split('-').map(Number)
+      return { start, end: dayKey(new Date(y, m, 0)) }
+    }
     default: return { start: null, end: null } // 'all' / 'custom' (custom uses its own inputs)
   }
 }
@@ -43,6 +53,11 @@ export default function AllTransactions() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
+  // Same ?month= contract as Dashboard / Budget Settings / the deep dive.
+  const [searchParams] = useSearchParams()
+  const monthParam = searchParams.get('month')
+  const month = monthParam && MONTH_RE.test(monthParam) ? monthParam : monthKey()
+
   const [bucketFilter, setBucketFilter] = useState('all')
   const [preset, setPreset] = useState('month')
   const [customFrom, setCustomFrom] = useState(dayKey(addDays(new Date(), -30)))
@@ -59,7 +74,10 @@ export default function AllTransactions() {
     setLoading(false)
   }
 
-  const range = useMemo(() => preset === 'custom' ? { start: customFrom, end: customTo } : presetRange(preset), [preset, customFrom, customTo])
+  const range = useMemo(
+    () => preset === 'custom' ? { start: customFrom, end: customTo } : presetRange(preset, month),
+    [preset, customFrom, customTo, month],
+  )
 
   const filtered = useMemo(() => {
     return items.filter(it => {
@@ -120,7 +138,9 @@ export default function AllTransactions() {
       <Reveal delay={30}>
         <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1 mb-2">
           {PRESETS.map(p => (
-            <FilterChip key={p.key} label={p.label} active={preset === p.key} onClick={() => setPreset(p.key)} />
+            <FilterChip key={p.key}
+              label={p.key === 'month' && month !== monthKey() ? monthName(month) : p.label}
+              active={preset === p.key} onClick={() => setPreset(p.key)} />
           ))}
         </div>
         {preset === 'custom' && (

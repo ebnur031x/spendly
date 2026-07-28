@@ -1,8 +1,17 @@
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+
+// Mirrors Navbar: the browsed month has to survive a tab tap, or "All" lands
+// on the real current month while the rest of the app is in another one.
+const MONTH_AWARE = new Set(['/dashboard', '/transactions'])
+const MONTH_RE = /^\d{4}-\d{2}$/
 
 export default function BottomNav() {
   const { pathname } = useLocation()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const monthParam = searchParams.get('month')
+  const month = monthParam && MONTH_RE.test(monthParam) ? monthParam : null
+  const hrefFor = to => (month && MONTH_AWARE.has(to) ? `${to}?month=${month}` : to)
 
   function openLog() {
     navigate('/dashboard', { state: { openLog: Date.now() } })
@@ -17,7 +26,7 @@ export default function BottomNav() {
         paddingBottom: 'env(safe-area-inset-bottom)',
       }}
     >
-      <Tab to="/dashboard" label="Home" active={pathname === '/dashboard'} Icon={HomeIcon} />
+      <Tab to={hrefFor('/dashboard')} label="Home" active={pathname === '/dashboard'} Icon={HomeIcon} />
       <Tab to="/daily" label="Daily" active={pathname === '/daily'} Icon={ReceiptIcon} />
 
       <div className="flex-1 flex items-start justify-center" style={{ minHeight: 58 }}>
@@ -35,7 +44,7 @@ export default function BottomNav() {
         </button>
       </div>
 
-      <Tab to="/transactions" label="All" active={pathname === '/transactions'} Icon={SearchIcon} />
+      <Tab to={hrefFor('/transactions')} label="All" active={pathname === '/transactions'} Icon={SearchIcon} />
       <Tab to="/savings" label="Savings" active={pathname === '/savings'} Icon={PiggyIcon} />
     </nav>
   )

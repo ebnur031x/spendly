@@ -35,6 +35,7 @@ export default function BottomNav() {
         </button>
       </div>
 
+      <Tab to="/transactions" label="All" active={pathname === '/transactions'} Icon={SearchIcon} />
       <Tab to="/savings" label="Savings" active={pathname === '/savings'} Icon={PiggyIcon} />
     </nav>
   )
@@ -77,6 +78,16 @@ function ReceiptIcon({ active }) {
         stroke="currentColor" strokeWidth={active ? 2.2 : 1.9} strokeLinejoin="round"
         fill={active ? 'currentColor' : 'none'} fillOpacity={active ? 0.12 : 0} />
       <path d="M9.3 8.2h5.6M9.3 11.6h5.6M9.3 15h3.6" stroke="currentColor" strokeWidth={active ? 2.2 : 1.9} strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function SearchIcon({ active }) {
+  return (
+    <svg width="23" height="23" viewBox="0 0 24 24" fill="none">
+      <circle cx="10.5" cy="10.5" r="6.5" stroke="currentColor" strokeWidth={active ? 2.3 : 1.9}
+        fill={active ? 'currentColor' : 'none'} fillOpacity={active ? 0.12 : 0} />
+      <path d="M19.5 19.5 15 15" stroke="currentColor" strokeWidth={active ? 2.3 : 1.9} strokeLinecap="round" />
     </svg>
   )
 }

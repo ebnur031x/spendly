@@ -53,6 +53,13 @@ export function monthRange(key = monthKey()) {
   return { start: dayKey(new Date(y, m - 1, 1)), end: dayKey(new Date(y, m, 1)) }
 }
 
+// Shift a "YYYY-MM" key by `delta` months (negative goes back), e.g.
+// shiftMonth("2026-12", 1) === "2027-01".
+export function shiftMonth(key, delta) {
+  const [y, m] = key.split('-').map(Number)
+  return monthKey(new Date(y, m - 1 + delta, 1))
+}
+
 export function daysInMonth(key = monthKey()) {
   const [y, m] = key.split('-').map(Number)
   return new Date(y, m, 0).getDate()
@@ -62,6 +69,46 @@ export function daysInMonth(key = monthKey()) {
 // Only meaningful for the current month; returns 0 for past/future keys.
 export function daysLeftInMonth(now = new Date()) {
   return Math.max(0, daysInMonth(monthKey(now)) - now.getDate())
+}
+
+// Every date in a month, first to last — the whole calendar month, always
+// (28/29/30/31), never truncated at today. Drives the deep-dive spine.
+export function monthDates(key = monthKey()) {
+  const [y, m] = key.split('-').map(Number)
+  return Array.from({ length: daysInMonth(key) }, (_, i) => {
+    const d = new Date(y, m - 1, i + 1)
+    return {
+      key: dayKey(d),
+      dayNum: i + 1,
+      weekday: d.toLocaleDateString(undefined, { weekday: 'short' }).toLowerCase(),
+    }
+  })
+}
+
+// Split a month's dates into calendar weeks (Sunday-start, per the app's
+// Bangladesh week model). Weeks are CLIPPED to the month — the first and
+// last are usually partial — so grouping can never pull in a neighbouring
+// month's dates. Label reads "Jul 1 – 4".
+export function groupDatesByWeek(dates) {
+  const weeks = []
+  let current = null
+  for (const d of dates) {
+    const wk = dayKey(startOfWeek(parseKey(d.key)))
+    if (!current || current.key !== wk) {
+      current = { key: wk, days: [] }
+      weeks.push(current)
+    }
+    current.days.push(d)
+  }
+  const monthShort = (k) => parseKey(k).toLocaleDateString(undefined, { month: 'short' })
+  for (const w of weeks) {
+    const first = w.days[0]
+    const last = w.days[w.days.length - 1]
+    w.label = first === last
+      ? `${monthShort(first.key)} ${first.dayNum}`
+      : `${monthShort(first.key)} ${first.dayNum} – ${last.dayNum}`
+  }
+  return weeks
 }
 
 // Midnight of the Sunday on/before d.

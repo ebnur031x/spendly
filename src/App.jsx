@@ -5,6 +5,8 @@ import Login from './pages/Login'
 import Signup from './pages/Signup'
 import Landing from './pages/Landing'
 import Dashboard from './pages/Dashboard'
+import BudgetSettings from './pages/BudgetSettings'
+import DailyDeepDive from './pages/DailyDeepDive'
 import DailySpend from './pages/DailySpend'
 import BucketDetail from './pages/BucketDetail'
 import Commitments from './pages/Commitments'
@@ -34,6 +36,8 @@ function App() {
           <Route path="/signup" element={<Signup />} />
 
           <Route path="/dashboard" element={<Protected><Dashboard /></Protected>} />
+          <Route path="/budget-settings" element={<Protected><BudgetSettings /></Protected>} />
+          <Route path="/budget-settings/daily-deep-dive" element={<Protected><DailyDeepDive /></Protected>} />
           <Route path="/daily" element={<Protected><DailySpend /></Protected>} />
           <Route path="/groceries" element={<Protected><BucketDetail bucketKey="groceries" /></Protected>} />
           <Route path="/bills" element={<Protected><BucketDetail bucketKey="bills" /></Protected>} />

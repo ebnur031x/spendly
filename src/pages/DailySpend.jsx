@@ -6,7 +6,7 @@ import { useToast } from '../context/ToastContext'
 import { CATEGORIES, CATEGORY_TYPES, getCategoryMeta } from '../lib/categories'
 import { dayKey, parseKey, expenseDay, addDays, monthKey, daysInMonth } from '../lib/dates'
 import { insertExpenses } from '../lib/expenses'
-import { bucketMeta, ensureBucketSettings, updateBucketSetting, indexSettings } from '../lib/buckets'
+import { bucketMeta, ensureBucketSettings, indexSettings } from '../lib/buckets'
 import { suggestBillType } from '../lib/classify'
 import { useBucketRedirect } from '../hooks/useBucketRedirect'
 import { listDayTypes, seedDefaultDayTypesIfEmpty } from '../lib/dayTypes'
@@ -106,11 +106,6 @@ export default function DailySpend() {
   const [logToEdit, setLogToEdit] = useState(null)
   const [newLog, setNewLog] = useState(false)
   const [showDayTypes, setShowDayTypes] = useState(false)
-
-  // mini-budget cap
-  const [showCap, setShowCap] = useState(false)
-  const [capVal, setCapVal] = useState('')
-  const [capPeriodDraft, setCapPeriodDraft] = useState('daily')
 
   useEffect(() => { fetchData() /* eslint-disable-next-line */ }, [])
 
@@ -261,16 +256,6 @@ export default function DailySpend() {
     setEditing(null)
   }
 
-  async function saveCap() {
-    const val = capVal.trim() === '' ? null : parseFloat(capVal)
-    if (val != null && !(val >= 0)) return
-    setShowCap(false)
-    if (setting?.id) {
-      const { data } = await updateBucketSetting(setting.id, { mini_budget: val, cap_period: capPeriodDraft })
-      if (data) setSetting(data)
-    }
-  }
-
   /* derived */
   const daysWithExpense = useMemo(() => {
     const s = new Set(expenses.map(expenseDay).filter(Boolean))
@@ -370,17 +355,20 @@ export default function DailySpend() {
           </div>
         </div>
 
-        {/* Mini-budget */}
+        {/* Daily Spend cap — read-only. The deep dive owns this number now:
+            it writes bucket_settings.mini_budget when a month is fully
+            allocated, so a second editor here would silently fight it. */}
         <Reveal>
           <div className="card p-5 mb-4">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-semibold uppercase" style={{ color: 'var(--n400)', letterSpacing: '0.07em' }}>Mini-budget</span>
-              <button onClick={() => { setCapVal(miniBudget != null ? String(miniBudget) : ''); setCapPeriodDraft(capPeriod); setShowCap(true) }}
-                className="btn-soft text-xs px-3 py-1.5 rounded-full font-semibold">
-                {miniBudget != null ? 'Edit cap' : 'Set cap'}
-              </button>
+              <span className="text-xs font-semibold uppercase" style={{ color: 'var(--n400)', letterSpacing: '0.07em' }}>Daily Spend cap</span>
+              <Link to="/budget-settings/daily-deep-dive"
+                className="btn-soft text-xs px-3 py-1.5 rounded-full font-semibold" style={{ textDecoration: 'none' }}>
+                {miniBudget != null ? 'Deep dive ›' : 'Set it up ›'}
+              </Link>
             </div>
-            <MiniBudgetBar used={monthUsed} cap={cap} color={color} note={dailyCapNote} />
+            <MiniBudgetBar used={monthUsed} cap={cap} color={color}
+              note={miniBudget != null ? dailyCapNote : 'Set from the deep dive'} />
           </div>
         </Reveal>
 
@@ -787,40 +775,6 @@ export default function DailySpend() {
         </div>
       )}
 
-      {/* Mini-budget cap modal */}
-      {showCap && (
-        <div className="modal-scrim" onClick={() => setShowCap(false)}>
-          <div className="modal-sheet" onClick={e => e.stopPropagation()}>
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-extrabold" style={{ color: 'var(--n900)', letterSpacing: '-0.02em' }}>Daily Spend cap</h2>
-                <button onClick={() => setShowCap(false)} aria-label="Close" style={{ ...editBtnStyle, width: 36, height: 36, fontSize: 14 }}>✕</button>
-              </div>
-              <div className="grid grid-cols-2 gap-2 mb-4">
-                {[{ v: 'daily', label: 'Per day' }, { v: 'monthly', label: 'Per month' }].map(o => {
-                  const on = capPeriodDraft === o.v
-                  return (
-                    <button key={o.v} onClick={() => setCapPeriodDraft(o.v)}
-                      className="py-2.5 rounded-xl text-sm font-semibold"
-                      style={{ background: on ? 'var(--ink)' : 'var(--surface-2)', color: on ? 'var(--on-ink)' : 'var(--n500)', border: '1.5px solid ' + (on ? 'var(--ink)' : 'var(--border-2)'), cursor: 'pointer' }}>
-                      {o.label}
-                    </button>
-                  )
-                })}
-              </div>
-              <div className="flex items-center rounded-xl px-4 py-3 mb-4" style={{ background: 'var(--surface-2)', border: '1.5px solid var(--border-2)' }}>
-                <span className="text-base mr-2" style={{ color: 'var(--n350)' }}>৳</span>
-                <input type="number" min="0" step="1" value={capVal} onChange={e => setCapVal(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && saveCap()} placeholder="No cap" autoFocus
-                  className="flex-1 text-base font-semibold tabular-nums"
-                  style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--n900)' }} />
-                <span className="text-xs ml-2" style={{ color: 'var(--n350)' }}>/{capPeriodDraft === 'daily' ? 'day' : 'mo'}</span>
-              </div>
-              <button onClick={saveCap} className="btn-ink w-full py-2.5 rounded-xl text-sm font-semibold">Save</button>
-            </div>
-          </div>
-        </div>
-      )}
     </main>
   )
 }

@@ -16,6 +16,12 @@ import Navbar from './components/Navbar'
 import BottomNav from './components/BottomNav'
 
 // Shared shell for signed-in screens: top nav + page + bottom nav.
+// Navbar carries the theme toggle on desktop. Mobile's toggle lives inline
+// in Dashboard's own header instead of floating globally here — every page
+// has a different top-right layout (search icon, back-link, nothing), so a
+// single fixed-position overlay would collide with whatever a given page
+// already puts there (it did, with Dashboard's search button). Dashboard is
+// one BottomNav tap away from anywhere, so this stays reliably collision-free.
 function Protected({ children }) {
   return (
     <ProtectedRoute>

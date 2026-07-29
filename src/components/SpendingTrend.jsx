@@ -2,8 +2,10 @@ import { useState, useRef, useEffect } from 'react'
 import { daysInMonth, monthKey, daysLeftInMonth } from '../lib/dates'
 import { money0 } from '../lib/format'
 
-const PLAIN_COLOR = '#888888'
-const ZERO_COLOR = '#1e2530'
+// Theme-aware: these feed straight into SVG fill/stroke attributes, which
+// resolve CSS custom properties the same way style props do.
+const PLAIN_COLOR = 'var(--n400)'
+const ZERO_COLOR = 'var(--border-2)'
 const FALLBACK_TYPE_COLOR = '#6366f1'
 
 // Returns an SVG path string for a rect with rounded top corners only.
@@ -161,7 +163,7 @@ export default function SpendingTrend({
       {/* Mobile scrim */}
       {clicked?.mobile && (
         <div
-          style={{ position: 'fixed', inset: 0, zIndex: 59, background: 'rgba(0,0,0,0.45)' }}
+          style={{ position: 'fixed', inset: 0, zIndex: 59, background: 'var(--scrim)' }}
           onClick={() => setClicked(null)}
         />
       )}
@@ -173,17 +175,17 @@ export default function SpendingTrend({
           className="pop-fade"
           style={{
             ...tooltipStyle,
-            background: '#1e2530',
-            border: '1px solid #21262d',
+            background: 'var(--tooltip-bg)',
+            border: '1px solid var(--border)',
             borderRadius: 12,
             padding: 12,
             minWidth: 200,
             maxWidth: 240,
-            boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+            boxShadow: 'var(--shadow-tooltip)',
           }}
           onClick={e => e.stopPropagation()}
         >
-          <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#e6edf3', marginBottom: 6 }}>
+          <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--n900)', marginBottom: 6 }}>
             {tooltipData.dateDisplay}
           </div>
 
@@ -209,7 +211,7 @@ export default function SpendingTrend({
               background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.4)',
               borderRadius: 8, padding: '4px 8px',
             }}>
-              <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#f59e0b' }}>
+              <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--warn)' }}>
                 ⚠ {tooltipData.logsCount} day logs for this date ({tooltipData.dayTypeNames.join(', ')})
               </span>
             </div>
@@ -218,32 +220,32 @@ export default function SpendingTrend({
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {tooltipData.expenses.map((e, i) => (
               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-                <span style={{ fontSize: '0.72rem', color: '#8b949e', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: '0.72rem', color: 'var(--n400)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {e.title || 'Expense'}
                 </span>
-                <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#e6edf3', fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--n900)', fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
                   {money0(e.amount)}
                 </span>
               </div>
             ))}
             {tooltipData.logItems.map((x, i) => (
               <div key={'l' + i} style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-                <span style={{ fontSize: '0.72rem', color: '#8b949e', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: '0.72rem', color: 'var(--n400)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {x.label}
                 </span>
-                <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#e6edf3', fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--n900)', fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
                   {money0(x.amount)}
                 </span>
               </div>
             ))}
             {tooltipData.expenses.length === 0 && tooltipData.logItems.length === 0 && (
-              <span style={{ fontSize: '0.72rem', color: '#6f6f77' }}>No details recorded</span>
+              <span style={{ fontSize: '0.72rem', color: 'var(--n350)' }}>No details recorded</span>
             )}
           </div>
 
-          <div style={{ marginTop: 10, paddingTop: 8, borderTop: '1px solid #21262d', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
-            <span style={{ fontSize: '0.65rem', fontWeight: 600, color: '#6f6f77', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Total</span>
-            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#e6edf3', fontVariantNumeric: 'tabular-nums' }}>{money0(tooltipData.total)}</span>
+          <div style={{ marginTop: 10, paddingTop: 8, borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
+            <span style={{ fontSize: '0.65rem', fontWeight: 600, color: 'var(--n350)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Total</span>
+            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--n900)', fontVariantNumeric: 'tabular-nums' }}>{money0(tooltipData.total)}</span>
           </div>
         </div>
       )}
@@ -260,7 +262,7 @@ export default function SpendingTrend({
           <g>
             <line
               x1={0} y1={lineY} x2={W} y2={lineY}
-              stroke="rgba(255,255,255,0.25)"
+              stroke="var(--border-3)"
               strokeWidth={1}
               strokeDasharray="4 3"
             />
@@ -286,7 +288,7 @@ export default function SpendingTrend({
               d={topRoundedRect(bx, by, barW, h, 3)}
               fill={has ? barColor(x) : ZERO_COLOR}
               opacity={has ? (isToday || isClicked ? 1 : 0.8) : 0.6}
-              stroke={isToday ? '#ffffff' : 'none'}
+              stroke={isToday ? 'var(--ink)' : 'none'}
               strokeWidth={isToday ? 1.5 : 0}
               style={{ cursor: has ? 'pointer' : 'default', transition: 'opacity 0.15s' }}
               onClick={has ? e => handleBarClick(e, day, i, by) : undefined}

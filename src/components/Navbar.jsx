@@ -1,6 +1,7 @@
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import Logo from './Logo'
+import ThemeToggle from './ThemeToggle'
 
 const links = [
   { to: '/dashboard', label: 'Overview' },
@@ -59,10 +60,10 @@ export default function Navbar() {
       </div>
 
       <div className="flex items-center gap-2 flex-shrink-0">
+        <ThemeToggle style={{ width: 32, height: 32 }} />
         <button
           onClick={openLog}
-          className="text-sm rounded-full flex items-center gap-1.5 px-4 py-2"
-          style={{ background: '#ffffff', color: '#000000', fontWeight: 600, border: '1.5px solid rgba(0,0,0,0.1)', cursor: 'pointer' }}
+          className="btn-ink text-sm font-semibold rounded-full flex items-center gap-1.5 px-4 py-2"
         >
           <span style={{ fontSize: 15, lineHeight: 1 }}>＋</span> Log Today
         </button>

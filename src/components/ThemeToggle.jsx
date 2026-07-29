@@ -1,6 +1,6 @@
 import { useTheme } from '../context/ThemeContext'
 
-export default function ThemeToggle({ style }) {
+export default function ThemeToggle({ style, className }) {
   const { theme, toggle } = useTheme()
   const dark = theme === 'dark'
 
@@ -9,6 +9,7 @@ export default function ThemeToggle({ style }) {
       onClick={toggle}
       aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
       title={dark ? 'Light mode' : 'Dark mode'}
+      className={className}
       style={{
         width: 36, height: 36, borderRadius: 999, flexShrink: 0,
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',

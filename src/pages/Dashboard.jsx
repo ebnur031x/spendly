@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useLocation, useNavigate, useSearchParams, Link } from 'react-router-dom'
+import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { money0 } from '../lib/format'
 import { monthKey, monthLabel, daysLeftInMonth, daysInMonth } from '../lib/dates'
@@ -16,6 +17,7 @@ import MonthNav from '../components/MonthNav'
 import { resolveCap } from '../components/MiniBudgetBar'
 import LogTodayModal from '../components/LogTodayModal'
 import SetupScreen from '../components/SetupScreen'
+import ThemeToggle from '../components/ThemeToggle'
 
 const MONTH_RE = /^\d{4}-\d{2}$/
 
@@ -27,6 +29,14 @@ export default function Dashboard() {
   const monthParam = searchParams.get('month')
   const month = monthParam && MONTH_RE.test(monthParam) ? monthParam : monthKey()
   const isCurrentMonth = month === monthKey()
+
+  // Navbar (desktop-only) already has this; mobile has never had any way to
+  // sign out, so it's duplicated here rather than lifted into a shared
+  // component — same one-line logic in both places.
+  async function handleSignOut() {
+    await supabase.auth.signOut()
+    navigate('/', { replace: true })
+  }
 
   function goToMonth(m) {
     if (m === monthKey()) setSearchParams({})
@@ -167,8 +177,16 @@ export default function Dashboard() {
         <LogTodayModal userId={user.id} dayTypes={dayTypes} initialType={log.type}
           onClose={() => setLog(null)} onSaved={handleLogged} />
       )}
-      {/* Header */}
-      <div className="flex items-center justify-between mb-7 gap-3 fade-up">
+      {/* Header. flex-wrap + the icon group's own margin-left:auto: on a
+          normal phone width this icon row (theme/search/sign-out on mobile)
+          doesn't reliably fit next to the month title + nav on one line —
+          measured real overflow of 20-37px past the screen edge on 375-390px
+          devices, which with no global overflow-x guard drags the WHOLE page
+          wider than the viewport (the "randomly zoomed" look). Wrapping the
+          icons onto their own right-aligned line below is a completely
+          normal mobile pattern and makes that overflow structurally
+          impossible, the same fix used for the deep-dive's day-type row. */}
+      <div className="flex items-center flex-wrap justify-between fade-up" style={{ marginBottom: 28, rowGap: 10, columnGap: 12 }}>
         <div>
           <p className="text-sm font-medium" style={{ color: 'var(--n400)' }}>
             {isCurrentMonth ? (
@@ -187,7 +205,17 @@ export default function Dashboard() {
             <MonthNav month={month} onChange={goToMonth} />
           </div>
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex items-center gap-2 flex-shrink-0" style={{ marginLeft: 'auto' }}>
+          {/* md:hidden on a plain wrapper div, not on ThemeToggle itself:
+              ThemeToggle sets `display: inline-flex` via inline style, and
+              an inline style always wins over a class rule (Tailwind's
+              utilities aren't !important) — `md:hidden` directly on the
+              button was silently a no-op, which is why it showed up
+              doubled on desktop. Wrapping it sidesteps the conflict
+              entirely instead of fighting specificity. */}
+          <div className="md:hidden">
+            <ThemeToggle style={{ width: 48, height: 48 }} />
+          </div>
           <Link to={isCurrentMonth ? '/transactions' : `/transactions?month=${month}`} aria-label="Search all transactions"
             className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0"
             style={{ background: 'var(--surface-2)', border: '1.5px solid var(--border-2)', color: 'var(--n600)' }}>
@@ -196,6 +224,17 @@ export default function Dashboard() {
               <path d="M20 20L16.5 16.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
             </svg>
           </Link>
+          {/* Sign out has never had a mobile home — Navbar (desktop-only)
+              was the only place it lived. Same corner as the other utility
+              icons, since that's where a mobile user would look for it. */}
+          <button onClick={handleSignOut} aria-label="Sign out"
+            className="md:hidden w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0"
+            style={{ background: 'var(--surface-2)', border: '1.5px solid var(--border-2)', color: 'var(--n600)', cursor: 'pointer' }}>
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M16 17l5-5-5-5M21 12H9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
         </div>
       </div>
 
@@ -207,7 +246,7 @@ export default function Dashboard() {
               style={{ fontSize: heroSize, fontWeight: 700, color: overBudget ? 'var(--danger)' : 'var(--n900)', letterSpacing: '-0.03em', whiteSpace: 'nowrap' }}>
               {overBudget ? `−${money0(Math.abs(cuRemaining))}` : money0(cuRemaining)}
             </span>
-            <span style={{ fontSize: '0.75rem', color: '#888', letterSpacing: '0.07em', marginTop: '0.4rem' }}>
+            <span style={{ fontSize: '0.75rem', color: 'var(--n400)', letterSpacing: '0.07em', marginTop: '0.4rem' }}>
               {overBudget ? 'over budget' : isCurrentMonth ? 'left this month' : 'left unspent'}
             </span>
             {/* The ring keeps only the figure — editing moved to a real

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { money0 } from '../lib/format'
 import { parseKey } from '../lib/dates'
 import { saveDailyLog, deleteDailyLog } from '../lib/dailyDeepDive'
@@ -71,7 +72,14 @@ export default function DeepDiveDayModal({
     weekday: 'long', month: 'long', day: 'numeric',
   })
 
-  return (
+  // Portalled to <body>: the page's `.fade-up` entrance animation leaves
+  // `<main>` with a lingering identity transform (animation-fill-mode:
+  // both), and ANY transform value on an ancestor — even a no-op one —
+  // makes that ancestor the containing block for position:fixed
+  // descendants. Left in place, this modal would be "fixed" to <main>'s
+  // box instead of the viewport, drifting with scroll and landing off-
+  // screen on a long page like this one's 31-day timeline.
+  return createPortal(
     <div className="modal-scrim" onClick={onClose}>
       <div className="modal-sheet" onClick={e => e.stopPropagation()}>
         <div className="p-6">
@@ -176,6 +184,7 @@ export default function DeepDiveDayModal({
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

@@ -9,5 +9,6 @@ export default defineConfig({
   ],
   server: {
     port: process.env.PORT ? Number(process.env.PORT) : 5173,
+    host: true, // listen on the LAN too, so a phone on the same wifi can reach it
   },
 })

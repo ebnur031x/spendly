@@ -407,11 +407,15 @@ export default function DailyDeepDive() {
                       background: logged > 0 ? daily.color : 'var(--surface)',
                       border: logged > 0 ? 'none' : '1.5px solid var(--border-3)',
                     }} />
+                    {/* flex-wrap safety net, same reasoning as the day-type
+                        row below: harmless on normal phones, only engages
+                        on the narrowest screens with "this week" showing. */}
                     <button type="button"
                       onClick={() => setOpenWeeks(p => ({ ...p, [row.week.key]: !p[row.week.key] }))}
                       aria-expanded={open}
-                      className="w-full flex items-center gap-3 text-left rounded-xl px-3.5 py-2.5"
+                      className="w-full flex items-center flex-wrap text-left rounded-xl px-3.5 py-2.5"
                       style={{
+                        columnGap: 12, rowGap: 4,
                         background: open ? 'var(--surface-2)' : 'transparent',
                         border: `1.5px solid ${open ? 'var(--border-soft)' : 'var(--border-2)'}`,
                       }}>
@@ -610,8 +614,13 @@ export default function DailyDeepDive() {
                     )}
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center rounded-lg px-2.5 flex-shrink-0" style={{ width: 106, ...inputStyle, borderRadius: 10 }}>
+                  {/* flex-wrap + the subtotal's auto margin: on phones wide
+                      enough (~375px+) everything sits on one line same as
+                      before; on genuinely narrow screens the subtotal drops
+                      to its own right-aligned line instead of overflowing
+                      the card. Verified at 0px overflow from 320–430px. */}
+                  <div className="flex items-center flex-wrap" style={{ columnGap: 6, rowGap: 8 }}>
+                    <div className="flex items-center rounded-lg px-2 flex-shrink-0" style={{ width: 92, ...inputStyle, borderRadius: 10 }}>
                       <span className="text-sm mr-1" style={{ color: 'var(--n350)' }}>৳</span>
                       <input type="number" min="0" step="1" value={costMap[dt.id] ?? ''}
                         onChange={e => setCostMap(prev => ({ ...prev, [dt.id]: e.target.value }))}
@@ -624,9 +633,9 @@ export default function DailyDeepDive() {
                       onChange={e => handleAllocChange(dt.id, e.target.value)}
                       onBlur={() => handleAllocBlur(dt.id)}
                       className="text-base font-bold tabular-nums text-center flex-shrink-0"
-                      style={{ width: 56, background: 'var(--surface)', border: '1.5px solid var(--border-2)', borderRadius: 10, color: 'var(--n900)', padding: '6px 0' }} />
+                      style={{ width: 48, background: 'var(--surface)', border: '1.5px solid var(--border-2)', borderRadius: 10, color: 'var(--n900)', padding: '6px 0' }} />
                     <span className="text-xs flex-shrink-0" style={{ color: 'var(--n300)' }}>days</span>
-                    <span className="flex-1 text-sm font-semibold tabular-nums text-right" style={{ color: 'var(--n900)' }}>
+                    <span className="text-sm font-semibold tabular-nums flex-shrink-0" style={{ color: 'var(--n900)', marginLeft: 'auto' }}>
                       {money0(dayTypeCost(dt) * parseAllocValue(allocMap[dt.id]))}
                     </span>
                   </div>

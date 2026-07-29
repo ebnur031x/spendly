@@ -65,6 +65,9 @@
   --shadow-toast: 0 12px 40px rgba(0,0,0,0.25);
   --shadow-float: 0 8px 28px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.06);
   --shadow-float-strong: 0 12px 40px rgba(0,0,0,0.28), 0 4px 12px rgba(0,0,0,0.12);
+
+  --tooltip-bg: #ffffff;
+  --shadow-tooltip: 0 8px 32px rgba(0,0,0,0.12);
 }
 
 :root[data-theme="dark"] {
@@ -119,6 +122,11 @@
   --shadow-toast: 0 12px 40px rgba(0,0,0,0.6);
   --shadow-float: 0 8px 28px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.4);
   --shadow-float-strong: 0 14px 44px rgba(0,0,0,0.6), 0 4px 12px rgba(0,0,0,0.5);
+
+  /* exact values SpendingTrend's tooltip already hardcoded — kept identical
+     so switching this to a token changes nothing in dark mode */
+  --tooltip-bg: #1e2530;
+  --shadow-tooltip: 0 8px 32px rgba(0,0,0,0.5);
 }
 
 * { box-sizing: border-box; }
@@ -127,6 +135,18 @@
 * {
   transition: background-color 0.25s ease, border-color 0.25s ease, color 0.2s ease;
 }
+
+/* Safety net: nothing should ever be able to push the page wider than the
+   screen and drag the whole viewport sideways (the "everything looks
+   randomly zoomed/shifted" symptom on mobile) — this clips any one
+   element's overflow instead of letting it widen the whole document. It
+   doesn't affect any element's own explicit horizontal scroll area.
+   `html` only, not `body`: Navbar uses `position:sticky`, and per the CSS
+   overflow-propagation rules, setting this on `body` too can turn body into
+   an unexpected nested scroll container that breaks sticky's "nearest
+   scrolling ancestor" lookup. `html` alone governs viewport scrolling
+   directly without that risk. */
+html { overflow-x: hidden; }
 
 body {
   background-color: var(--bg);

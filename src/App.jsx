@@ -9,6 +9,7 @@ import BudgetSettings from './pages/BudgetSettings'
 import DailyDeepDive from './pages/DailyDeepDive'
 import DailySpend from './pages/DailySpend'
 import BucketDetail from './pages/BucketDetail'
+import GroceriesDeepDive from './pages/GroceriesDeepDive'
 import Commitments from './pages/Commitments'
 import AllTransactions from './pages/AllTransactions'
 import Savings from './pages/Savings'
@@ -46,6 +47,7 @@ function App() {
           <Route path="/budget-settings/daily-deep-dive" element={<Protected><DailyDeepDive /></Protected>} />
           <Route path="/daily" element={<Protected><DailySpend /></Protected>} />
           <Route path="/groceries" element={<Protected><BucketDetail bucketKey="groceries" /></Protected>} />
+          <Route path="/groceries/deep-dive" element={<Protected><GroceriesDeepDive /></Protected>} />
           <Route path="/bills" element={<Protected><BucketDetail bucketKey="bills" /></Protected>} />
           <Route path="/commitments" element={<Protected><Commitments /></Protected>} />
           <Route path="/transactions" element={<Protected><AllTransactions /></Protected>} />

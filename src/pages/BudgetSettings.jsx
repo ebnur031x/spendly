@@ -150,8 +150,11 @@ export default function BudgetSettings() {
           <div className="flex flex-col gap-3">
             {BUCKETS.map(b => (
               <div key={b.key} className="flex items-center gap-3">
-                {b.key === 'daily' ? (
-                  <Link to={month === monthKey() ? '/budget-settings/daily-deep-dive' : `/budget-settings/daily-deep-dive?month=${month}`}
+                {b.key === 'daily' || b.key === 'groceries' ? (
+                  <Link to={(() => {
+                      const base = b.key === 'daily' ? '/budget-settings/daily-deep-dive' : '/groceries/deep-dive'
+                      return month === monthKey() ? base : `${base}?month=${month}`
+                    })()}
                     className="flex items-center gap-3 flex-1 min-w-0 row-hover rounded-xl -mx-1 px-1 py-1"
                     style={{ textDecoration: 'none' }}>
                     <span className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"

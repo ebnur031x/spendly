@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
+import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
@@ -221,6 +222,24 @@ export default function BucketDetail({ bucketKey }) {
         </div>
       </div>
 
+      {/* Groceries-only: a lighter deep-dive for item prices + trip
+          history. Bills has no equivalent — this is intentionally scoped
+          to groceries alone, not lifted into the shared config above. */}
+      {key === 'groceries' && (
+        <Reveal>
+          <Link to="/groceries/deep-dive" className="card p-4 mb-4 row-hover flex items-center gap-3"
+            style={{ textDecoration: 'none' }}>
+            <span className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+              style={{ background: `${color}22`, fontSize: 17 }}>🧮</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold" style={{ color: 'var(--n900)' }}>Groceries deep-dive</p>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--n350)' }}>Log what you buy — weekly &amp; monthly totals</p>
+            </div>
+            <span style={{ color: 'var(--n300)' }}>›</span>
+          </Link>
+        </Reveal>
+      )}
+
       {/* Mini-budget card */}
       <Reveal>
         <div className="card p-5 mb-4">
@@ -228,10 +247,19 @@ export default function BucketDetail({ bucketKey }) {
             <span className="text-xs font-semibold uppercase" style={{ color: 'var(--n400)', letterSpacing: '0.07em' }}>
               This month
             </span>
-            <button onClick={() => { setCapVal(miniBudget != null ? String(miniBudget) : ''); setShowCap(true) }}
-              className="btn-soft text-xs px-3 py-1.5 rounded-full font-semibold">
-              {miniBudget != null ? 'Edit cap' : 'Set cap'}
-            </button>
+            {key === 'groceries' ? (
+              // Read-only here: the deep-dive is the one writer of this cap
+              // (same fix as Daily Spend's — two editors on one field
+              // silently fight each other).
+              <Link to="/groceries/deep-dive" className="btn-soft text-xs px-3 py-1.5 rounded-full font-semibold" style={{ textDecoration: 'none' }}>
+                {miniBudget != null ? 'Deep dive ›' : 'Set it up ›'}
+              </Link>
+            ) : (
+              <button onClick={() => { setCapVal(miniBudget != null ? String(miniBudget) : ''); setShowCap(true) }}
+                className="btn-soft text-xs px-3 py-1.5 rounded-full font-semibold">
+                {miniBudget != null ? 'Edit cap' : 'Set cap'}
+              </button>
+            )}
           </div>
           <MiniBudgetBar used={monthUsed} cap={cap} color={color} note={capLabel} />
         </div>

@@ -227,6 +227,82 @@ drop policy if exists "own deepdive_allocations" on deepdive_allocations;
 create policy "own deepdive_allocations" on deepdive_allocations for all to authenticated
   using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
+-- ══════════════════════════════════════════════════════════
+-- Groceries deep-dive — a standalone calculator reached from the
+-- Groceries bucket screen. Same spirit as the Daily Spend deep-dive but
+-- deliberately lighter: a reusable item pool (chicken, veg, prices) and a
+-- plain chronological trip log — no day types, no allocator. Purely
+-- additive: does not read or write budgets/expenses/bucket_settings.
+-- ══════════════════════════════════════════════════════════
+
+-- 14. grocery_items — reusable named prices ("Chicken" ৳320) ─
+create table if not exists grocery_items (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  name text not null,
+  amount numeric not null default 0,
+  created_at timestamptz default now()
+);
+alter table grocery_items enable row level security;
+drop policy if exists "own grocery_items" on grocery_items;
+create policy "own grocery_items" on grocery_items for all to authenticated
+  using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- 15. grocery_trips — one row per logged shopping trip ─
+--     No unique constraint on date: unlike the Daily log (one row per
+--     calendar date), a trip is an event, and two trips can happen the
+--     same day.
+create table if not exists grocery_trips (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  date date not null,
+  created_at timestamptz default now()
+);
+create index if not exists grocery_trips_user_date_idx on grocery_trips (user_id, date);
+alter table grocery_trips enable row level security;
+drop policy if exists "own grocery_trips" on grocery_trips;
+create policy "own grocery_trips" on grocery_trips for all to authenticated
+  using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- 16. grocery_trip_items — what was actually bought on that trip ─
+--     Independent COPIES of an item's price, never a live reference, so
+--     editing an item's price later never rewrites a past logged trip.
+create table if not exists grocery_trip_items (
+  id uuid primary key default gen_random_uuid(),
+  trip_id uuid not null references grocery_trips(id) on delete cascade,
+  name text not null,
+  amount numeric not null default 0,
+  created_at timestamptz default now()
+);
+create index if not exists grocery_trip_items_trip_idx on grocery_trip_items (trip_id);
+alter table grocery_trip_items enable row level security;
+drop policy if exists "own grocery_trip_items" on grocery_trip_items;
+create policy "own grocery_trip_items" on grocery_trip_items for all to authenticated
+  using (exists (select 1 from grocery_trips t where t.id = trip_id and t.user_id = auth.uid()))
+  with check (exists (select 1 from grocery_trips t where t.id = trip_id and t.user_id = auth.uid()));
+
+-- grocery_items / grocery_trips / grocery_trip_items above are DORMANT —
+-- superseded the same day by the flatter table below (no item pool, no
+-- trip wrapper, just one row per thing bought). Left in place rather than
+-- dropped in case anything was already logged; nothing in the app reads
+-- or writes them any more.
+
+-- 17. grocery_log_items — one row per thing bought, that's it ─
+--     No item pool, no trip grouping: date + name + price, directly.
+create table if not exists grocery_log_items (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  date date not null,
+  name text not null,
+  amount numeric not null default 0,
+  created_at timestamptz default now()
+);
+create index if not exists grocery_log_items_user_date_idx on grocery_log_items (user_id, date);
+alter table grocery_log_items enable row level security;
+drop policy if exists "own grocery_log_items" on grocery_log_items;
+create policy "own grocery_log_items" on grocery_log_items for all to authenticated
+  using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
 -- ════════════════════════════════════════════════════════════════
 -- DATA MIGRATION — run once, AFTER the schema above.
 -- Review your data first:

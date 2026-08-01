@@ -184,7 +184,7 @@ export default function GroceriesDeepDive() {
     setSetting(data)
   }
 
-  if (missingSchema) return <SetupScreen variant="schema" onRetry={() => { loadSettings(); loadEntries() }} />
+  if (missingSchema) return <SetupScreen onRetry={() => { loadSettings(); loadEntries() }} />
 
   if (loading) {
     return (

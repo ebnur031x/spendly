@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import { monthKey, monthLabel } from '../lib/dates'
-import { getBudget, getLatestBudgetBefore, upsertBudget } from '../lib/budgets'
+import { getBudget, upsertBudget } from '../lib/budgets'
 import { isMissingSchema } from '../lib/schema'
 import { BUCKETS, BUCKET_KEYS } from '../lib/buckets'
 import Reveal from '../components/Reveal'
@@ -61,10 +61,9 @@ export default function BudgetSettings() {
       // overall cap is just their sum, not an independently-set value.
       setHadRow(BUCKET_KEYS.some(k => existing.category_budgets?.[k] != null))
     } else {
-      // No row for this month yet — start from the most recent prior month's
-      // numbers as editable defaults.
-      const { data: prev } = await getLatestBudgetBefore(user.id, month)
-      if (prev) setCats(fillCats(prev.category_budgets))
+      // No row for this month yet — every new month starts blank, never
+      // prefilled from a prior month's numbers.
+      setCats(emptyCats())
       setHadRow(false)
     }
     setLoading(false)
@@ -98,7 +97,7 @@ export default function BudgetSettings() {
     navigate(month === monthKey() ? '/dashboard' : `/dashboard?month=${month}`)
   }
 
-  if (missingSchema) return <SetupScreen variant="schema" onRetry={load} />
+  if (missingSchema) return <SetupScreen onRetry={load} />
 
   if (loading) {
     return (

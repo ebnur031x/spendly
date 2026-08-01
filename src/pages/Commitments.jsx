@@ -8,7 +8,7 @@ import { suggestBillType } from '../lib/classify'
 import { useBucketRedirect } from '../hooks/useBucketRedirect'
 import { insertExpenses } from '../lib/expenses'
 import {
-  ensureCommitmentsMaterialized, listCommitmentInstances, listCommitmentTemplates,
+  listCommitmentInstances, listCommitmentTemplates, listSuggestedCommitments, addCommitmentInstance,
   addCommitment, updateCommitment, deleteCommitment, stopCommitment,
   nextCommitmentColor, COMMITMENT_COLORS,
 } from '../lib/commitments'
@@ -33,6 +33,8 @@ export default function Commitments() {
 
   const [instances, setInstances] = useState([])
   const [templates, setTemplates] = useState([])
+  const [suggested, setSuggested] = useState([])
+  const [addingId, setAddingId] = useState(null)
   const [setting, setSetting] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -58,27 +60,38 @@ export default function Commitments() {
 
   async function load() {
     setLoading(true)
-    await ensureCommitmentsMaterialized(user.id, month)
-    const [instRes, tplRes, setRes] = await Promise.all([
+    const [instRes, tplRes, sugRes, setRes] = await Promise.all([
       listCommitmentInstances(user.id, month),
       listCommitmentTemplates(user.id),
+      listSuggestedCommitments(user.id, month),
       ensureBucketSettings(user.id),
     ])
     if (instRes.error) setError(instRes.error.message)
     setInstances(instRes.data ?? [])
     setTemplates(tplRes.data ?? [])
+    setSuggested(sugRes.data ?? [])
     setSetting(indexSettings(setRes.data ?? [])['commitments'] ?? null)
     setColor(nextCommitmentColor(tplRes.data ?? []))
     setLoading(false)
   }
 
   async function refresh() {
-    const [instRes, tplRes] = await Promise.all([
+    const [instRes, tplRes, sugRes] = await Promise.all([
       listCommitmentInstances(user.id, month),
       listCommitmentTemplates(user.id),
+      listSuggestedCommitments(user.id, month),
     ])
     setInstances(instRes.data ?? [])
     setTemplates(tplRes.data ?? [])
+    setSuggested(sugRes.data ?? [])
+  }
+
+  async function addSuggested(template) {
+    setAddingId(template.id)
+    const { error: err } = await addCommitmentInstance(user.id, template, month)
+    setAddingId(null)
+    if (err) { setError(err.message); return }
+    refresh()
   }
 
   // A redirect away from Commitments (e.g. typing "milk" here) can't create a
@@ -214,7 +227,9 @@ export default function Commitments() {
           <div className="card py-14 text-center mb-4">
             <p className="text-4xl mb-3">{meta.icon}</p>
             <p className="text-sm" style={{ color: 'var(--n350)' }}>No commitments reserved this month.</p>
-            <p className="text-xs mt-1" style={{ color: 'var(--n300)' }}>Add one below — it auto-reserves each month.</p>
+            <p className="text-xs mt-1" style={{ color: 'var(--n300)' }}>
+              {suggested.length > 0 ? 'Add one from your recurring list below, or add a new one.' : 'Add one below.'}
+            </p>
           </div>
         ) : (
           <div className="card overflow-hidden mb-4">
@@ -244,6 +259,35 @@ export default function Commitments() {
           </div>
         )}
       </Reveal>
+
+      {/* Suggested — recurring templates not yet added this month. Adding one
+          is the only thing that reserves it into this month's spend; nothing
+          here is auto-materialized. */}
+      {!loading && suggested.length > 0 && (
+        <Reveal delay={80}>
+          <div className="flex items-end justify-between mb-3 px-1">
+            <h2 className="text-lg font-bold" style={{ color: 'var(--n900)' }}>Suggested for {monthLabel(month)}</h2>
+          </div>
+          <div className="card overflow-hidden mb-4">
+            <ul>
+              {suggested.map((t, i) => (
+                <li key={t.id} className="flex items-center gap-3 px-4 sm:px-5 py-3.5"
+                  style={{ borderBottom: i < suggested.length - 1 ? '1px solid var(--hairline)' : 'none' }}>
+                  <span style={{ width: 10, height: 10, borderRadius: '50%', background: t.color, flexShrink: 0 }} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate" style={{ color: 'var(--n800)' }}>{t.name}</p>
+                    <span className="text-xs" style={{ color: 'var(--n350)' }}>{money0(t.amount)}/mo · not added yet</span>
+                  </div>
+                  <button onClick={() => addSuggested(t)} disabled={addingId === t.id}
+                    className="btn-soft text-xs px-3 py-1.5 rounded-full font-semibold flex-shrink-0">
+                    {addingId === t.id ? 'Adding…' : 'Add'}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </Reveal>
+      )}
 
       {error && (
         <div className="mb-4 rounded-xl px-4 py-3 text-sm"
@@ -290,7 +334,7 @@ export default function Commitments() {
                   <span className="min-w-0">
                     <span className="text-sm font-semibold block" style={{ color: 'var(--n800)' }}>Repeats monthly</span>
                     <span className="text-xs" style={{ color: 'var(--n350)' }}>
-                      {repeats ? 'Auto-reserves a fresh entry every month' : 'One-time — this month only'}
+                      {repeats ? "Suggested every month — you'll tap Add each time" : 'One-time — this month only'}
                     </span>
                   </span>
                 </button>
@@ -325,7 +369,7 @@ export default function Commitments() {
               ))}
             </ul>
             <p className="text-xs mt-3" style={{ color: 'var(--n350)' }}>
-              Stopping keeps past history but won't reserve future months. Editing this month's amount above only changes this month.
+              Stopping keeps past history but won't be suggested for future months. Editing this month's amount above only changes this month.
             </p>
           </div>
         </Reveal>

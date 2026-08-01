@@ -323,7 +323,7 @@ export default function DailyDeepDive() {
       ? 'color-mix(in srgb, var(--warn) 10%, transparent)'
       : 'color-mix(in srgb, var(--success) 10%, transparent)'
 
-  if (missingSchema) return <SetupScreen variant="schema" onRetry={load} />
+  if (missingSchema) return <SetupScreen onRetry={load} />
 
   if (loading) {
     return (

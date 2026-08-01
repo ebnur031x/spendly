@@ -6,14 +6,6 @@ export function getBudget(userId, month = monthKey()) {
     .eq('user_id', userId).eq('month', month).maybeSingle()
 }
 
-// Most recent budget row before `month` (any mode) — used to prefill the
-// Budget Settings form when the current month has no row yet.
-export function getLatestBudgetBefore(userId, month = monthKey()) {
-  return supabase.from('budgets').select('*')
-    .eq('user_id', userId).lt('month', month)
-    .order('month', { ascending: false }).limit(1).maybeSingle()
-}
-
 // Create or update the month's budget row. Done as get-then-update/insert
 // (rather than a DB upsert) so it also cleanly updates any legacy row that
 // pre-existed for this month, without depending on a unique constraint.

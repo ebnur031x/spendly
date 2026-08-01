@@ -102,3 +102,19 @@ export async function loadBudgetSnapshot(userId, month = monthKey()) {
     overBudget: hasBudget && spent > main,
   }
 }
+
+// Permanently wipe a single month back to a blank first-time state: its
+// expenses, daily logs, this month's commitment instances (the recurring
+// templates themselves are untouched, so they still show up as "Suggested"
+// afterwards), and its budget row. Never touches any other month.
+export async function resetMonth(userId, month) {
+  const { start, end } = monthRange(month)
+  const [expRes, logsRes, fixedRes, budgetRes] = await Promise.all([
+    supabase.from('expenses').delete().eq('user_id', userId).gte('date', start).lt('date', end),
+    supabase.from('daily_logs').delete().eq('user_id', userId).gte('date', start).lt('date', end),
+    supabase.from('fixed_costs').delete().eq('user_id', userId).eq('month', month),
+    supabase.from('budgets').delete().eq('user_id', userId).eq('month', month),
+  ])
+  const error = expRes.error ?? logsRes.error ?? fixedRes.error ?? budgetRes.error ?? null
+  return { error }
+}

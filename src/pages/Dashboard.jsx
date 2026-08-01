@@ -4,9 +4,8 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { money0 } from '../lib/format'
 import { monthKey, monthLabel, daysLeftInMonth, daysInMonth } from '../lib/dates'
-import { loadBudgetSnapshot } from '../lib/budget'
+import { loadBudgetSnapshot, resetMonth } from '../lib/budget'
 import { BUCKETS, bucketView, ensureBucketSettings } from '../lib/buckets'
-import { ensureCommitmentsMaterialized } from '../lib/commitments'
 import { listDayTypes, seedDefaultDayTypesIfEmpty } from '../lib/dayTypes'
 import { useCountUp } from '../hooks/useCountUp'
 import Reveal from '../components/Reveal'
@@ -50,6 +49,8 @@ export default function Dashboard() {
   const [toast, setToast] = useState(location.state?.welcome ?? '')
   const [weather, setWeather] = useState(null)
   const [now, setNow] = useState(() => new Date())
+  const [showReset, setShowReset] = useState(false)
+  const [resetting, setResetting] = useState(false)
 
   useEffect(() => { load() /* eslint-disable-next-line */ }, [month])
 
@@ -81,9 +82,6 @@ export default function Dashboard() {
 
   async function load() {
     setLoading(true)
-    // Auto-reserve commitments only for the real current month — browsing to
-    // a different month should only ever read data, never write it.
-    if (month === monthKey()) await ensureCommitmentsMaterialized(user.id, month)
     await ensureBucketSettings(user.id)
     const s = await loadBudgetSnapshot(user.id, month)
     setSnap(s)
@@ -95,7 +93,6 @@ export default function Dashboard() {
   }
 
   async function refresh() {
-    if (month === monthKey()) await ensureCommitmentsMaterialized(user.id, month)
     const s = await loadBudgetSnapshot(user.id, month)
     setSnap(s)
     const { data } = await listDayTypes(user.id)
@@ -108,6 +105,16 @@ export default function Dashboard() {
     refresh()
   }
 
+  async function handleReset() {
+    setResetting(true)
+    const { error } = await resetMonth(user.id, month)
+    setResetting(false)
+    setShowReset(false)
+    if (error) { setToast(error.message); return }
+    setToast(`${monthLabel(month)} reset`)
+    refresh()
+  }
+
   const remaining = snap?.remaining ?? 0
   const spent = snap?.spent ?? 0
   const run = !!snap && snap.hasBudget
@@ -115,13 +122,11 @@ export default function Dashboard() {
   const cuSpent = useCountUp(spent, run)
 
   if (loading && !snap) return <FullSpinner />
-  if (snap?.missingSchema) return <SetupScreen variant="schema" onRetry={load} />
+  if (snap?.missingSchema) return <SetupScreen onRetry={load} />
 
   if (!snap?.hasBudget) {
-    // Only the real current month gets the first-run onboarding flow. A past
-    // or future month with no row yet is just an empty state you can browse
-    // away from or set up ahead of time.
-    if (isCurrentMonth) return <SetupScreen variant="budget" month={month} userId={user.id} onDone={refresh} />
+    // Every month with no budget row — current, past, future, or just reset
+    // — gets the same plain empty state, not a special first-run wizard.
     return (
       <main className="min-h-screen px-5 sm:px-8 pt-6 sm:pt-10 pb-28 md:pb-10 max-w-2xl mx-auto fade-up">
         <div className="flex items-center justify-between mb-7 gap-3">
@@ -279,6 +284,12 @@ export default function Dashboard() {
             </svg>
             Budget &amp; category caps
           </Link>
+
+          <button onClick={() => setShowReset(true)}
+            className="text-xs font-semibold mt-3"
+            style={{ color: 'var(--n300)', background: 'none', border: 'none', cursor: 'pointer' }}>
+            Reset this month
+          </button>
         </div>
       </Reveal>
 
@@ -310,6 +321,32 @@ export default function Dashboard() {
       <Reveal className="mb-4" delay={20}>
         <SpendingTrend monthExpenses={dailyExpenses} dailyLogs={dailyLogs} dayTypes={dayTypes} month={month} remaining={remaining} />
       </Reveal>
+
+      {showReset && (
+        <div className="modal-scrim" onClick={() => !resetting && setShowReset(false)}>
+          <div className="modal-sheet" onClick={e => e.stopPropagation()}>
+            <div className="p-6">
+              <h2 className="text-lg font-extrabold mb-2" style={{ color: 'var(--n900)', letterSpacing: '-0.02em' }}>
+                Reset {monthLabel(month)}?
+              </h2>
+              <p className="text-sm mb-5" style={{ color: 'var(--n400)' }}>
+                This permanently deletes every expense, daily log, and reserved commitment for {monthLabel(month)}, plus this month's budget. This can't be undone.
+              </p>
+              <div className="flex gap-2">
+                <button onClick={() => setShowReset(false)} disabled={resetting}
+                  className="btn-soft flex-1 py-2.5 rounded-xl text-sm font-semibold">
+                  Cancel
+                </button>
+                <button onClick={handleReset} disabled={resetting}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
+                  style={{ background: 'var(--danger)', color: '#fff', border: 'none', cursor: 'pointer' }}>
+                  {resetting ? 'Resetting…' : 'Reset'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   )
 }

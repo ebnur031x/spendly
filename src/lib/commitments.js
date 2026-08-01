@@ -8,12 +8,13 @@ import { monthKey, daysInMonth } from './dates'
      • template  → month IS NULL      (the standing definition, "Rent ৳8000")
      • instance  → month = 'YYYY-MM'  (the materialized entry for that month)
 
-   Each month the app auto-reserves by materializing one instance per active
-   template. The instance is a plain, fully-editable/deletable row — the
-   template only provides the default. Deleting this month's instance does NOT
-   respawn it (guarded by the template's last_generated_month); next month
-   generates fresh. The budget counts instances for the current month only —
-   templates are never summed directly.
+   Materializing a template into a given month's instance is a deliberate,
+   user-triggered action (tapping "Add" on a suggestion) — NOT automatic.
+   A month starts with zero instances even if templates exist, so "spent"
+   never includes a commitment you haven't actually reserved yet. The
+   instance is a plain, fully-editable/deletable row once created — the
+   template only provides the default. The budget counts instances for the
+   current month only — templates are never summed directly.
    ══════════════════════════════════════════════════════════════════ */
 
 const COLORS = [
@@ -45,76 +46,48 @@ function instanceDate(month, templateDueDate) {
   return `${month}-${String(clamped).padStart(2, '0')}`
 }
 
-// Collapse concurrent invocations into a single run. React StrictMode
-// double-invokes mount effects in dev, and a fast Dashboard→Commitments hop
-// can overlap in prod — without this both runs read "no instances yet" before
-// either writes, and each materializes a full set (doubling the reservation).
-const inFlight = new Map()
-
-// Auto-reserve for `month`: ensure exactly one instance per active template.
-// Idempotent and self-healing — safe to call on every load.
-export function ensureCommitmentsMaterialized(userId, month = monthKey()) {
-  const key = `${userId}:${month}`
-  if (inFlight.has(key)) return inFlight.get(key)
-  const run = materialize(userId, month).finally(() => inFlight.delete(key))
-  inFlight.set(key, run)
-  return run
-}
-
-async function materialize(userId, month) {
+// Active templates that don't yet have an instance for `month` — offered as
+// "Add" suggestions rather than silently materialized. Nothing here has been
+// written to `fixed_costs`, so none of it counts toward "spent" yet.
+export async function listSuggestedCommitments(userId, month = monthKey()) {
   const [tplRes, instRes] = await Promise.all([
     listCommitmentTemplates(userId),
     listCommitmentInstances(userId, month),
   ])
-  if (tplRes.error) return { error: tplRes.error, created: 0, deduped: 0 }
+  if (tplRes.error) return { data: [], error: tplRes.error }
+  if (instRes.error) return { data: [], error: instRes.error }
 
   const templates = tplRes.data ?? []
-  let instances = instRes.data ?? []
-
-  // Self-heal: if an earlier racy run left more than one instance for the same
-  // template this month, keep the first and delete the rest. (One-time entries
-  // carry no template_id and are never treated as duplicates.)
-  const keptByTemplate = new Set()
-  const dupeIds = []
-  for (const inst of instances) {
-    if (!inst.template_id) continue
-    if (keptByTemplate.has(inst.template_id)) dupeIds.push(inst.id)
-    else keptByTemplate.add(inst.template_id)
-  }
-  let deduped = 0
-  if (dupeIds.length > 0) {
-    const { error: delErr } = await supabase.from('fixed_costs').delete().in('id', dupeIds)
-    if (!delErr) { instances = instances.filter(i => !dupeIds.includes(i.id)); deduped = dupeIds.length }
-  }
-
-  const haveTemplateIds = new Set(instances.map(i => i.template_id).filter(Boolean))
-  const toCreate = templates.filter(
-    t => t.last_generated_month !== month && !haveTemplateIds.has(t.id),
+  const materializedTemplateIds = new Set(
+    (instRes.data ?? []).map(i => i.template_id).filter(Boolean),
   )
-  if (toCreate.length === 0) return { error: null, created: 0, deduped }
+  const suggested = templates.filter(t => !materializedTemplateIds.has(t.id))
+  return { data: suggested, error: null }
+}
 
-  const rows = toCreate.map(t => ({
+// User tapped "Add" on a suggested template: materialize it into this
+// month's instance. Guards against a double-tap creating two rows for the
+// same template+month.
+export async function addCommitmentInstance(userId, template, month = monthKey()) {
+  const { data: existing } = await supabase.from('fixed_costs').select('*')
+    .eq('user_id', userId).eq('template_id', template.id).eq('month', month).maybeSingle()
+  if (existing) return { data: existing, error: null }
+
+  const { data, error } = await supabase.from('fixed_costs').insert({
     user_id: userId,
-    name: t.name,
-    amount: t.amount,
-    color: t.color,
+    name: template.name,
+    amount: template.amount,
+    color: template.color,
     month,
-    template_id: t.id,
-    due_date: instanceDate(month, t.due_date),
+    template_id: template.id,
+    due_date: instanceDate(month, template.due_date),
     recurrence: 'none',
     active: true,
-  }))
-  const { error: insErr } = await supabase.from('fixed_costs').insert(rows)
-  if (insErr) return { error: insErr, created: 0, deduped }
+  }).select().single()
+  if (error) return { data: null, error }
 
-  // Mark each template as generated for this month so a later delete of the
-  // instance doesn't cause it to reappear.
-  await Promise.all(
-    toCreate.map(t =>
-      supabase.from('fixed_costs').update({ last_generated_month: month }).eq('id', t.id),
-    ),
-  )
-  return { error: null, created: rows.length, deduped }
+  await supabase.from('fixed_costs').update({ last_generated_month: month }).eq('id', template.id)
+  return { data, error: null }
 }
 
 // Add a commitment. `repeats` → creates a standing template AND this month's

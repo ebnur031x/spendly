@@ -26,7 +26,7 @@ export default function BudgetRing({ fraction, color, children }) {
   return (
     <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
       <svg width={size} height={size} viewBox="0 0 240 240" style={{ display: 'block' }}>
-        <circle cx={120} cy={120} r={r} fill="none" stroke="#ffffff" strokeWidth={stroke} />
+        <circle cx={120} cy={120} r={r} fill="none" stroke="var(--n900)" strokeWidth={stroke} />
         <circle
           cx={120} cy={120} r={r} fill="none"
           stroke={color} strokeWidth={stroke} strokeLinecap="round"

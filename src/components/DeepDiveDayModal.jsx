@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { money0 } from '../lib/format'
 import { parseKey } from '../lib/dates'
-import { saveDailyLog, deleteDailyLog } from '../lib/dailyDeepDive'
+import { saveDailyLog, deleteDailyLog, defaultItemsOf, updateDayType } from '../lib/dailyDeepDive'
 
 /* Log (or edit) one calendar date on the deep-dive spine.
    The day type is only a label for the day — what it actually cost is typed
@@ -15,7 +15,7 @@ const inputStyle = {
 }
 
 export default function DeepDiveDayModal({
-  userId, date, log = null, dayTypes, accent, onClose, onSaved, onDeleted,
+  userId, date, log = null, dayTypes, accent, onClose, onSaved, onDeleted, onDayTypeUpdated,
 }) {
   const [dayTypeId, setDayTypeId] = useState(log?.day_type_id ?? null)
   const [rows, setRows] = useState(() =>
@@ -23,6 +23,7 @@ export default function DeepDiveDayModal({
   )
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [savingDefaultIdx, setSavingDefaultIdx] = useState(null)
 
   // Freeze the page behind the sheet. Without this the long month list keeps
   // scrolling underneath — and an autofocused field inside the sheet can drag
@@ -49,6 +50,32 @@ export default function DeepDiveDayModal({
   function setRow(i, patch) { setRows(rs => rs.map((r, j) => (j === i ? { ...r, ...patch } : r))) }
   function removeRow(i) { setRows(rs => rs.filter((_, j) => j !== i)) }
   function addRow() { setRows(rs => [...rs, { name: '', amount: '' }]) }
+  function addQuickItem(it) { setRows(rs => [...rs, { name: it.name, amount: String(it.amount) }]) }
+
+  const selectedType = dayTypes.find(dt => dt.id === dayTypeId)
+  const quickItems = defaultItemsOf(selectedType)
+
+  function isAlreadyDefault(row) {
+    const name = row.name.trim().toLowerCase()
+    return !name ? false : quickItems.some(it => it.name.trim().toLowerCase() === name)
+  }
+
+  // Save a row you're typing right now as this day type's default, so it
+  // shows up as a quick-add chip (here and on the deep-dive page) the next
+  // time — without having to leave this modal to set it up separately.
+  async function saveRowAsDefault(i) {
+    if (!selectedType || savingDefaultIdx !== null) return
+    const row = rows[i]
+    const name = row.name.trim()
+    const amount = parseFloat(row.amount)
+    if (!name || !(amount > 0) || isAlreadyDefault(row)) return
+    setSavingDefaultIdx(i)
+    const items = [...quickItems, { name, amount }]
+    const { data, error: err } = await updateDayType(selectedType.id, { default_items: items })
+    setSavingDefaultIdx(null)
+    if (err) { setError(err.message); return }
+    onDayTypeUpdated?.(data)
+  }
 
   async function save() {
     if (saving) return
@@ -132,6 +159,26 @@ export default function DeepDiveDayModal({
             </>
           )}
 
+          {/* quick add — this day type's reusable "usually cost this" items,
+              set up on the deep-dive page. Tapping one just appends a normal,
+              still-editable row; nothing here is locked. */}
+          {quickItems.length > 0 && (
+            <div className="mb-4">
+              <p className="text-xs font-semibold uppercase mb-2" style={{ color: 'var(--n400)', letterSpacing: '0.07em' }}>
+                Quick add
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {quickItems.map((it, i) => (
+                  <button key={i} type="button" onClick={() => addQuickItem(it)}
+                    className="tile-press text-xs font-semibold px-3 py-1.5 rounded-xl"
+                    style={{ background: 'var(--surface-2)', border: '1.5px solid var(--border-2)', color: 'var(--n600)' }}>
+                    + {it.name} ৳{it.amount}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* items */}
           <div className="flex flex-col gap-2 mb-4">
             {rows.map((r, i) => (
@@ -149,6 +196,26 @@ export default function DeepDiveDayModal({
                     className="w-full text-sm font-semibold tabular-nums text-right py-1.5"
                     style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--n900)' }} />
                 </div>
+                {selectedType && (() => {
+                  const already = isAlreadyDefault(r)
+                  const canSave = !already && !!r.name.trim() && parseFloat(r.amount) > 0
+                  return (
+                    <button type="button" onClick={() => saveRowAsDefault(i)}
+                      disabled={!canSave || savingDefaultIdx !== null}
+                      title={already ? `Already a default for ${selectedType.name}` : `Save as a ${selectedType.name} default`}
+                      className="flex-shrink-0 flex items-center justify-center"
+                      style={{
+                        width: 28, height: 28, borderRadius: '50%', fontSize: 13,
+                        background: already ? `${accent}1f` : 'var(--surface)',
+                        border: `1.5px solid ${already ? accent : 'var(--border-2)'}`,
+                        color: already ? accent : 'var(--n400)',
+                        cursor: canSave ? 'pointer' : 'default',
+                        opacity: canSave || already ? 1 : 0.4,
+                      }}>
+                      {already ? '★' : '☆'}
+                    </button>
+                  )
+                })()}
                 <button onClick={() => removeRow(i)} className="btn-delete flex-shrink-0" title="Remove">×</button>
               </div>
             ))}

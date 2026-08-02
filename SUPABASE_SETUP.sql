@@ -153,6 +153,10 @@ create table if not exists deepdive_day_types (
 -- summed this from deepdive_items via deepdive_day_type_items; that pool
 -- was removed, so the figure is typed in directly.)
 alter table deepdive_day_types add column if not exists cost_per_day numeric not null default 0;
+-- Reusable "usually cost this" items for this day type (e.g. Uni Day's bus
+-- fares), typed once and reused as quick-add chips or a bulk fill across the
+-- month — separate from cost_per_day, which stays purely for the mix/plan.
+alter table deepdive_day_types add column if not exists default_items jsonb not null default '[]'::jsonb;
 alter table deepdive_day_types enable row level security;
 drop policy if exists "own deepdive_day_types" on deepdive_day_types;
 create policy "own deepdive_day_types" on deepdive_day_types for all to authenticated

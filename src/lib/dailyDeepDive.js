@@ -35,6 +35,15 @@ export function dayTypeCost(dt) {
   return Number(dt?.cost_per_day || 0)
 }
 
+// A day type's reusable "usually cost this" items (e.g. Uni Day's bus
+// fares) — typed once, then reused as quick-add chips inside a single day's
+// log or copied into every day at once via bulkFillDayType. Purely a
+// convenience default: separate from cost_per_day, and never itself summed
+// into the mix/plan math.
+export function defaultItemsOf(dt) {
+  return dt?.default_items ?? []
+}
+
 /* ── Daily log — one row per calendar date ── */
 
 // Every logged date in a "YYYY-MM" month, items nested in one round trip.
@@ -79,6 +88,16 @@ export function deleteDailyLog(id) {
 export function dailyLogTotal(log) {
   return (log?.deepdive_daily_log_items ?? [])
     .reduce((sum, it) => sum + Number(it.amount || 0), 0)
+}
+
+// Copy a day type's default items into every one of `dates` at once (e.g.
+// "apply Uni Day to every day this month"). Each date is only ever the ones
+// the caller has already filtered to not-yet-logged, so an existing day's
+// own edits are never touched or overwritten.
+export async function bulkFillDayType(userId, dates, dayTypeId, items) {
+  const results = await Promise.all(dates.map(date => saveDailyLog(userId, date, dayTypeId, items)))
+  const error = results.find(r => r.error)?.error ?? null
+  return { error, filled: results.filter(r => !r.error).length }
 }
 
 /* ── Monthly allocations ── */

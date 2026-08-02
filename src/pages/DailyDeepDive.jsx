@@ -7,7 +7,7 @@ import { isMissingSchema } from '../lib/schema'
 import { bucketMeta, ensureBucketSettings, updateBucketSetting, indexSettings } from '../lib/buckets'
 import {
   listDayTypes, createDayType, updateDayType, deleteDayType, dayTypeCost,
-  listDailyLogs, dailyLogTotal,
+  listDailyLogs, dailyLogTotal, defaultItemsOf, bulkFillDayType,
   listAllocations, saveAllocation,
 } from '../lib/dailyDeepDive'
 import Reveal from '../components/Reveal'
@@ -113,6 +113,12 @@ export default function DailyDeepDive() {
   const [overAllocWarning, setOverAllocWarning] = useState(null) // { id, room }
   const warnTimerRef = useRef(null)
 
+  // default items (per day type "usually cost this" list)
+  const [openDefaults, setOpenDefaults] = useState({})     // { [dayTypeId]: true }
+  const [newDefaultItem, setNewDefaultItem] = useState({}) // { [dayTypeId]: { name, amount } }
+  const [bulkConfirmId, setBulkConfirmId] = useState(null) // day type id pending bulk-apply confirm
+  const [bulkApplying, setBulkApplying] = useState(false)
+
   // Keyed on `month` so a rollover past midnight refetches into the new month
   // instead of leaving the previous month's rows on screen.
   useEffect(() => { load() /* eslint-disable-next-line */ }, [month])
@@ -162,11 +168,18 @@ export default function DailyDeepDive() {
 
   // Weeks collapse by default; the flat row list is what actually renders, so
   // "is this the last node on the spine" stays a single index check.
+  //
+  // `key` is prefixed by kind — a week's own key is its Sunday start date,
+  // which is IDENTICAL to its first day's date whenever that week starts
+  // inside the month (i.e. every week except the leading partial one). Two
+  // sibling rows sharing a React key ("week" and "day", both "2026-08-16")
+  // corrupts reconciliation the moment that week is opened/closed, which is
+  // what caused rows to visibly duplicate/glitch on toggle.
   const rows = useMemo(() => {
     const out = []
     for (const w of weeks) {
-      out.push({ kind: 'week', key: w.key, week: w })
-      if (openWeeks[w.key]) for (const d of w.days) out.push({ kind: 'day', key: d.key, day: d })
+      out.push({ kind: 'week', key: `week-${w.key}`, week: w })
+      if (openWeeks[w.key]) for (const d of w.days) out.push({ kind: 'day', key: `day-${d.key}`, day: d })
     }
     return out
   }, [weeks, openWeeks])
@@ -189,6 +202,13 @@ export default function DailyDeepDive() {
   function handleDayDeleted(date) {
     setLogs(prev => prev.filter(l => l.date !== date))
     setEditingDate(null)
+  }
+
+  // The day modal can save a typed row as a day type's default in the
+  // moment — keep this page's own day type list in sync so the deep-dive
+  // section 2 card and any later-opened day modal both see it immediately.
+  function handleDayTypeUpdated(updated) {
+    setDayTypes(prev => prev.map(d => (d.id === updated.id ? updated : d)))
   }
 
   /* ── Day types ── */
@@ -242,6 +262,39 @@ export default function DailyDeepDive() {
     setAllocMap(prev => { const next = { ...prev }; delete next[id]; return next })
     const { error: err } = await deleteDayType(id)
     if (err) { setError(err.message); setDayTypes(prevDayTypes); setAllocMap(prevAlloc) }
+  }
+
+  /* ── Default items (a day type's reusable "usually cost this" list) ── */
+
+  async function addDefaultItem(dt) {
+    const draft = newDefaultItem[dt.id]
+    const name = draft?.name?.trim()
+    const amount = parseFloat(draft?.amount)
+    if (!name || !(amount > 0)) return
+    const items = [...defaultItemsOf(dt), { name, amount }]
+    const { data, error: err } = await updateDayType(dt.id, { default_items: items })
+    if (isMissingSchema(err)) { setMissingSchema(true); return }
+    if (err) { setError(err.message); return }
+    setDayTypes(prev => prev.map(d => (d.id === data.id ? data : d)))
+    setNewDefaultItem(prev => ({ ...prev, [dt.id]: { name: '', amount: '' } }))
+  }
+
+  async function removeDefaultItem(dt, index) {
+    const items = defaultItemsOf(dt).filter((_, i) => i !== index)
+    const { data, error: err } = await updateDayType(dt.id, { default_items: items })
+    if (err) { setError(err.message); return }
+    setDayTypes(prev => prev.map(d => (d.id === data.id ? data : d)))
+  }
+
+  // Only fills in days that don't have a log yet — an already-logged day
+  // (including a deliberate day off) is never touched or overwritten.
+  async function handleBulkApply(dt, dates) {
+    setBulkApplying(true)
+    const { error: err } = await bulkFillDayType(user.id, dates, dt.id, defaultItemsOf(dt))
+    setBulkApplying(false)
+    setBulkConfirmId(null)
+    if (err) { setError(err.message); return }
+    await load()
   }
 
   /* ── Allocation ── */
@@ -639,6 +692,59 @@ export default function DailyDeepDive() {
                       {money0(dayTypeCost(dt) * parseAllocValue(allocMap[dt.id]))}
                     </span>
                   </div>
+
+                  {/* Default items: a reusable "usually cost this" list for
+                      this day type, so repeated items (e.g. Uni Day's bus
+                      fares) don't have to be retyped for every single day. */}
+                  <div className="mt-2.5 pt-2.5" style={{ borderTop: '1px solid var(--border-2)' }}>
+                    <button type="button"
+                      onClick={() => setOpenDefaults(p => ({ ...p, [dt.id]: !p[dt.id] }))}
+                      className="flex items-center gap-1.5 text-xs font-semibold"
+                      style={{ color: 'var(--n400)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                      <span aria-hidden style={{ transition: 'transform 0.15s ease', transform: openDefaults[dt.id] ? 'rotate(90deg)' : 'none' }}>›</span>
+                      Default items{defaultItemsOf(dt).length > 0 ? ` (${defaultItemsOf(dt).length})` : ''}
+                    </button>
+
+                    {openDefaults[dt.id] && (
+                      <div className="mt-2.5 flex flex-col gap-1.5">
+                        {defaultItemsOf(dt).map((it, i) => (
+                          <div key={i} className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg"
+                            style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)' }}>
+                            <span className="flex-1 min-w-0 text-xs truncate" style={{ color: 'var(--n700)' }}>{it.name}</span>
+                            <span className="text-xs font-semibold tabular-nums flex-shrink-0" style={{ color: 'var(--n800)' }}>{money0(it.amount)}</span>
+                            <button onClick={() => removeDefaultItem(dt, i)} className="btn-delete flex-shrink-0"
+                              title="Remove" style={{ width: 20, height: 20, fontSize: 11 }}>×</button>
+                          </div>
+                        ))}
+
+                        <div className="flex items-center gap-1.5">
+                          <input value={newDefaultItem[dt.id]?.name ?? ''}
+                            onChange={e => setNewDefaultItem(p => ({ ...p, [dt.id]: { ...p[dt.id], name: e.target.value } }))}
+                            placeholder="Item name…" className="flex-1 min-w-0 rounded-lg px-2.5 py-1.5 text-xs" style={inputStyle} />
+                          <div className="flex items-center rounded-lg px-2 flex-shrink-0" style={{ width: 76, ...inputStyle }}>
+                            <span className="text-xs mr-0.5" style={{ color: 'var(--n350)' }}>৳</span>
+                            <input type="number" min="0" step="1" value={newDefaultItem[dt.id]?.amount ?? ''}
+                              onChange={e => setNewDefaultItem(p => ({ ...p, [dt.id]: { ...p[dt.id], amount: e.target.value } }))}
+                              placeholder="0" className="w-full text-xs font-semibold tabular-nums py-1"
+                              style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--n900)' }} />
+                          </div>
+                          <button type="button" onClick={() => addDefaultItem(dt)}
+                            disabled={!newDefaultItem[dt.id]?.name?.trim() || !(parseFloat(newDefaultItem[dt.id]?.amount) > 0)}
+                            className="btn-soft text-xs font-semibold px-2.5 py-1.5 rounded-lg flex-shrink-0">
+                            + Add
+                          </button>
+                        </div>
+
+                        {defaultItemsOf(dt).length > 0 && (
+                          <button type="button" onClick={() => setBulkConfirmId(dt.id)}
+                            className="text-xs font-semibold mt-1 text-left"
+                            style={{ color: daily.color, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                            Apply to every day this month →
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </li>
               ))}
             </ul>
@@ -656,8 +762,43 @@ export default function DailyDeepDive() {
           onClose={() => setEditingDate(null)}
           onSaved={handleDaySaved}
           onDeleted={handleDayDeleted}
+          onDayTypeUpdated={handleDayTypeUpdated}
         />
       )}
+
+      {bulkConfirmId && (() => {
+        const dt = dayTypes.find(d => d.id === bulkConfirmId)
+        if (!dt) return null
+        const missingDates = allDays.filter(d => !logsByDate[d.key])
+        return (
+          <div className="modal-scrim" onClick={() => !bulkApplying && setBulkConfirmId(null)}>
+            <div className="modal-sheet" onClick={e => e.stopPropagation()}>
+              <div className="p-6">
+                <h2 className="text-lg font-extrabold mb-2" style={{ color: 'var(--n900)', letterSpacing: '-0.02em' }}>
+                  Apply "{dt.name}" to {missingDates.length} day{missingDates.length === 1 ? '' : 's'}?
+                </h2>
+                <p className="text-sm mb-5" style={{ color: 'var(--n400)' }}>
+                  {missingDates.length === 0
+                    ? 'Every day this month already has a log — nothing to fill in.'
+                    : `Fills in ${defaultItemsOf(dt).map(it => it.name).join(', ')} on every not-yet-logged day this month. Already-logged days (including any you've marked off) are left exactly as they are — you can still edit any single day afterwards.`}
+                </p>
+                <div className="flex gap-2">
+                  <button onClick={() => setBulkConfirmId(null)} disabled={bulkApplying}
+                    className="btn-soft flex-1 py-2.5 rounded-xl text-sm font-semibold">
+                    Cancel
+                  </button>
+                  {missingDates.length > 0 && (
+                    <button onClick={() => handleBulkApply(dt, missingDates.map(d => d.key))} disabled={bulkApplying}
+                      className="btn-ink flex-1 py-2.5 rounded-xl text-sm font-semibold">
+                      {bulkApplying ? 'Applying…' : 'Apply'}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
     </main>
   )
 }

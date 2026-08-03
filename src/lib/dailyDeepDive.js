@@ -50,7 +50,7 @@ export function defaultItemsOf(dt) {
 export function listDailyLogs(userId, month) {
   const { start, end } = monthRange(month)
   return supabase.from('deepdive_daily_log')
-    .select('id, date, day_type_id, deepdive_daily_log_items (id, name, amount)')
+    .select('id, date, day_type_id, sent_log_id, deepdive_daily_log_items (id, name, amount)')
     .eq('user_id', userId)
     .gte('date', start).lt('date', end)
     .order('date', { ascending: true })
@@ -88,6 +88,29 @@ export function deleteDailyLog(id) {
 export function dailyLogTotal(log) {
   return (log?.deepdive_daily_log_items ?? [])
     .reduce((sum, it) => sum + Number(it.amount || 0), 0)
+}
+
+/* ── Send to Daily Spend — the bridge to the REAL budget ──
+   The deep-dive is a private planning copy and never touches expenses/
+   budgets/bucket_settings on its own. Sending a day writes one real
+   daily_logs row (the same shape "Log Today" already produces), so it
+   counts toward the actual Daily Spend total and the main budget ring. */
+
+// Insert a new real daily_logs row, or — if `existingRealLogId` is given —
+// update that same row in place, so re-sending an already-sent day never
+// creates a second real entry.
+export function sendDayToRealLog(userId, date, items, totalSpent, note, existingRealLogId) {
+  const payload = { user_id: userId, date, day_type_id: null, expenses: items, total_spent: totalSpent, notes: note }
+  if (existingRealLogId) {
+    return supabase.from('daily_logs').update(payload).eq('id', existingRealLogId).select().single()
+  }
+  return supabase.from('daily_logs').insert(payload).select().single()
+}
+
+// Record which real daily_logs row this deep-dive day was sent to, so the
+// page can show "Sent ✓" and re-sending targets the same real row.
+export function markLogSent(deepdiveLogId, realLogId) {
+  return supabase.from('deepdive_daily_log').update({ sent_log_id: realLogId }).eq('id', deepdiveLogId).select().single()
 }
 
 // Copy a day type's default items into every one of `dates` at once (e.g.

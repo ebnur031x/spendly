@@ -196,6 +196,10 @@ create table if not exists deepdive_daily_log (
   created_at timestamptz default now(),
   unique (user_id, date)
 );
+-- Links this planning-only day to the real daily_logs row it was sent to
+-- (see "Send to Daily Spend"). Null = never sent. Re-sending updates the
+-- same real row via this id rather than creating a second one.
+alter table deepdive_daily_log add column if not exists sent_log_id uuid references daily_logs(id) on delete set null;
 create index if not exists deepdive_daily_log_user_date_idx on deepdive_daily_log (user_id, date);
 alter table deepdive_daily_log enable row level security;
 drop policy if exists "own deepdive_daily_log" on deepdive_daily_log;

@@ -8,6 +8,7 @@ import { bucketMeta, ensureBucketSettings, updateBucketSetting, indexSettings } 
 import {
   listDayTypes, createDayType, updateDayType, deleteDayType, dayTypeCost,
   listDailyLogs, dailyLogTotal, defaultItemsOf, bulkFillDayType,
+  sendDayToRealLog, markLogSent,
   listAllocations, saveAllocation,
 } from '../lib/dailyDeepDive'
 import Reveal from '../components/Reveal'
@@ -119,6 +120,11 @@ export default function DailyDeepDive() {
   const [bulkConfirmId, setBulkConfirmId] = useState(null) // day type id pending bulk-apply confirm
   const [bulkApplying, setBulkApplying] = useState(false)
 
+  // send to Daily Spend (the real budget)
+  const [sendingKey, setSendingKey] = useState(null)       // date currently being sent
+  const [sendWeekConfirm, setSendWeekConfirm] = useState(null) // week object pending confirm
+  const [sendingWeekKey, setSendingWeekKey] = useState(null)
+
   // Keyed on `month` so a rollover past midnight refetches into the new month
   // instead of leaving the previous month's rows on screen.
   useEffect(() => { load() /* eslint-disable-next-line */ }, [month])
@@ -209,6 +215,49 @@ export default function DailyDeepDive() {
   // section 2 card and any later-opened day modal both see it immediately.
   function handleDayTypeUpdated(updated) {
     setDayTypes(prev => prev.map(d => (d.id === updated.id ? updated : d)))
+  }
+
+  /* ── Send to Daily Spend — the bridge to the real budget ──
+     Sending writes one real daily_logs row (same shape as "Log Today"), so
+     it counts toward the actual Daily Spend total and the main ring. A day
+     already sent is linked via sent_log_id — sending again updates that
+     same real row instead of creating a second one. */
+
+  async function sendOneDay(log) {
+    const dt = dayTypes.find(d => d.id === log.day_type_id)
+    const items = (log.deepdive_daily_log_items ?? []).map(it => ({ label: it.name, amount: Number(it.amount) }))
+    const total = dailyLogTotal(log)
+    const note = `Sent from deep-dive${dt ? ` · ${dt.name}` : ''}`
+    const { data: realLog, error: err } = await sendDayToRealLog(user.id, log.date, items, total, note, log.sent_log_id)
+    if (isMissingSchema(err)) { setMissingSchema(true); return { error: err } }
+    if (err) return { error: err }
+    const { data: updated, error: err2 } = await markLogSent(log.id, realLog.id)
+    if (err2) return { error: err2 }
+    return { data: updated }
+  }
+
+  async function handleSendDay(log) {
+    setSendingKey(log.date)
+    const { data, error: err } = await sendOneDay(log)
+    setSendingKey(null)
+    if (err) { setError(err.message); return }
+    setLogs(prev => prev.map(l => (l.id === data.id ? data : l)))
+  }
+
+  // Only the not-yet-sent days in this week are touched — an already-sent
+  // day is left exactly as it is, never re-sent as a side effect of a bulk
+  // week action.
+  async function handleSendWeek(week) {
+    const unsent = week.days.map(d => logsByDate[d.key]).filter(l => l && !l.sent_log_id)
+    if (unsent.length === 0) { setSendWeekConfirm(null); return }
+    setSendingWeekKey(week.key)
+    const results = await Promise.all(unsent.map(sendOneDay))
+    setSendingWeekKey(null)
+    setSendWeekConfirm(null)
+    const errored = results.find(r => r.error)
+    if (errored) setError(errored.error.message)
+    const updatedById = new Map(results.filter(r => r.data).map(r => [r.data.id, r.data]))
+    setLogs(prev => prev.map(l => updatedById.get(l.id) ?? l))
   }
 
   /* ── Day types ── */
@@ -451,6 +500,7 @@ export default function DailyDeepDive() {
                 const { logged, total } = weekStats(row.week)
                 const open = !!openWeeks[row.week.key]
                 const hasToday = row.week.days.some(d => d.key === today)
+                const unsentInWeek = row.week.days.map(d => logsByDate[d.key]).filter(l => l && !l.sent_log_id)
                 return (
                   <div key={row.key} style={{ position: 'relative', paddingBottom: open ? 18 : 10 }}>
                     {spine}
@@ -485,6 +535,17 @@ export default function DailyDeepDive() {
                       <span aria-hidden className="text-xs flex-shrink-0"
                         style={{ color: 'var(--n400)', transition: 'transform 0.18s ease', transform: open ? 'rotate(90deg)' : 'none' }}>›</span>
                     </button>
+
+                    {/* Only surfaced once you've expanded to see the days,
+                        and only when there's something un-sent to act on. */}
+                    {open && unsentInWeek.length > 0 && (
+                      <button type="button" onClick={() => setSendWeekConfirm(row.week)}
+                        disabled={sendingKey !== null || sendingWeekKey !== null}
+                        className="text-xs font-semibold mt-1.5 ml-1"
+                        style={{ color: daily.color, background: 'none', border: 'none', cursor: 'pointer', padding: 0, opacity: sendingKey !== null || sendingWeekKey !== null ? 0.5 : 1 }}>
+                        Send {unsentInWeek.length} day{unsentInWeek.length === 1 ? '' : 's'} to Daily Spend →
+                      </button>
+                    )}
                   </div>
                 )
               }
@@ -549,6 +610,26 @@ export default function DailyDeepDive() {
                         <span className="text-base font-extrabold tabular-nums" style={{ color: 'var(--n900)', letterSpacing: '-0.02em' }}>
                           {money0(dailyLogTotal(log))}
                         </span>
+                      </div>
+
+                      {/* Sends this day into the REAL daily_logs table, so it
+                          counts toward actual Daily Spend / the main ring —
+                          everything else on this page is planning-only. */}
+                      <div className="flex items-center justify-between mt-2.5 pt-2.5"
+                        style={{ borderTop: '1px solid var(--border-2)' }}>
+                        {log.sent_log_id ? (
+                          <span className="text-xs font-semibold" style={{ color: 'var(--success)' }}>Sent ✓</span>
+                        ) : <span />}
+                        <button type="button"
+                          onClick={e => { e.stopPropagation(); handleSendDay(log) }}
+                          disabled={sendingKey !== null || sendingWeekKey !== null}
+                          className="text-xs font-semibold"
+                          style={{
+                            color: log.sent_log_id ? 'var(--n400)' : daily.color, background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                            opacity: sendingKey !== null || sendingWeekKey !== null ? 0.5 : 1,
+                          }}>
+                          {sendingKey === d.key ? 'Sending…' : log.sent_log_id ? 'Re-send' : 'Send to Daily Spend →'}
+                        </button>
                       </div>
                     </div>
                   ) : (
@@ -793,6 +874,36 @@ export default function DailyDeepDive() {
                       {bulkApplying ? 'Applying…' : 'Apply'}
                     </button>
                   )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+
+      {sendWeekConfirm && (() => {
+        const week = sendWeekConfirm
+        const unsent = week.days.map(d => logsByDate[d.key]).filter(l => l && !l.sent_log_id)
+        const sending = sendingWeekKey === week.key
+        return (
+          <div className="modal-scrim" onClick={() => !sending && setSendWeekConfirm(null)}>
+            <div className="modal-sheet" onClick={e => e.stopPropagation()}>
+              <div className="p-6">
+                <h2 className="text-lg font-extrabold mb-2" style={{ color: 'var(--n900)', letterSpacing: '-0.02em' }}>
+                  Send {unsent.length} day{unsent.length === 1 ? '' : 's'} ({week.label}) to Daily Spend?
+                </h2>
+                <p className="text-sm mb-5" style={{ color: 'var(--n400)' }}>
+                  Each day is written to your real Daily Spend on its own date and will count toward this month's actual spent total and main budget. Days you've already sent in this week are skipped, not re-sent.
+                </p>
+                <div className="flex gap-2">
+                  <button onClick={() => setSendWeekConfirm(null)} disabled={sending}
+                    className="btn-soft flex-1 py-2.5 rounded-xl text-sm font-semibold">
+                    Cancel
+                  </button>
+                  <button onClick={() => handleSendWeek(week)} disabled={sending || sendingKey !== null}
+                    className="btn-ink flex-1 py-2.5 rounded-xl text-sm font-semibold">
+                    {sending ? 'Sending…' : 'Send'}
+                  </button>
                 </div>
               </div>
             </div>

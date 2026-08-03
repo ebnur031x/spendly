@@ -24,6 +24,7 @@ export default function DeepDiveDayModal({
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [savingDefaultIdx, setSavingDefaultIdx] = useState(null)
+  const [confirmRemove, setConfirmRemove] = useState(false)
 
   // Freeze the page behind the sheet. Without this the long month list keeps
   // scrolling underneath — and an autofocused field inside the sheet can drag
@@ -93,6 +94,17 @@ export default function DeepDiveDayModal({
     setSaving(false)
     if (err) { setError(err.message); return }
     onDeleted(date)
+  }
+
+  // Removing a day that was already sent doesn't touch the real Daily Spend
+  // entry it created (deleting real logged spending as a side effect would
+  // be far worse than leaving an orphaned one behind) — but re-logging and
+  // re-sending this date afterward would then create a SECOND real entry,
+  // since the fresh row starts with no sent_log_id of its own. Surface that
+  // plainly and require a second tap, rather than a single silent click.
+  function handleRemoveClick() {
+    if (log.sent_log_id && !confirmRemove) { setConfirmRemove(true); return }
+    remove()
   }
 
   const heading = parseKey(date).toLocaleDateString(undefined, {
@@ -243,11 +255,18 @@ export default function DeepDiveDayModal({
           </button>
 
           {log && (
-            <button onClick={remove} disabled={saving}
-              className="w-full text-xs font-semibold mt-3 py-2 rounded-xl"
-              style={{ background: 'transparent', border: 'none', color: 'var(--n350)', cursor: 'pointer' }}>
-              Remove this day's log
-            </button>
+            <>
+              {log.sent_log_id && confirmRemove && (
+                <p className="text-xs mt-3 text-center" style={{ color: 'var(--warn)' }}>
+                  This day was already sent to Daily Spend — removing it here won't undo that real entry. Delete it from Daily Spend/All Transactions if you don't want it counted.
+                </p>
+              )}
+              <button onClick={handleRemoveClick} disabled={saving}
+                className="w-full text-xs font-semibold mt-3 py-2 rounded-xl"
+                style={{ background: 'transparent', border: 'none', color: log.sent_log_id && confirmRemove ? 'var(--err-txt)' : 'var(--n350)', cursor: 'pointer' }}>
+                {log.sent_log_id ? (confirmRemove ? 'Yes, remove anyway' : "Remove this day's log…") : "Remove this day's log"}
+              </button>
+            </>
           )}
         </div>
       </div>

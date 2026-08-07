@@ -1,0 +1,899 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Spendly — Codebase Guide</title>
+<style>
+  :root{
+    --bg:#0d1117; --surface:#161b22; --surface-2:#1c222b; --elevated:#12161d;
+    --border:#262c36; --border-2:#30363d; --hairline:#21262d;
+    --ink:#e6edf3; --n900:#e6edf3; --n700:#c9d1d9; --n500:#8b949e; --n400:#7d8590; --n300:#636b74;
+    --accent:#a78bfa; --accent-2:#7c3aed;
+    --green:#3fb950; --blue:#58a6ff; --amber:#e3b341; --red:#f85149; --purple:#a78bfa;
+    --code-bg:#0d1117; --code-border:#21262d;
+    --shadow: 0 8px 30px rgba(0,0,0,0.35);
+    --radius: 14px;
+  }
+  @media (prefers-color-scheme: light){
+    :root{
+      --bg:#f7f7fb; --surface:#ffffff; --surface-2:#f2f2f7; --elevated:#ffffff;
+      --border:#e6e6ee; --border-2:#dcdce6; --hairline:#ececf2;
+      --ink:#14141c; --n900:#14141c; --n700:#33333d; --n500:#5c5c68; --n400:#767682; --n300:#96969f;
+      --accent:#7c3aed; --accent-2:#6d28d9;
+      --green:#1a7f37; --blue:#0969da; --amber:#9a6700; --red:#cf222e; --purple:#7c3aed;
+      --code-bg:#f6f6fb; --code-border:#e6e6ee;
+      --shadow: 0 8px 30px rgba(20,20,30,0.08);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0d1117; --surface:#161b22; --surface-2:#1c222b; --elevated:#12161d;
+    --border:#262c36; --border-2:#30363d; --hairline:#21262d;
+    --ink:#e6edf3; --n900:#e6edf3; --n700:#c9d1d9; --n500:#8b949e; --n400:#7d8590; --n300:#636b74;
+    --accent:#a78bfa; --accent-2:#7c3aed;
+    --green:#3fb950; --blue:#58a6ff; --amber:#e3b341; --red:#f85149; --purple:#a78bfa;
+    --code-bg:#0d1117; --code-border:#21262d;
+    --shadow: 0 8px 30px rgba(0,0,0,0.35);
+  }
+  :root[data-theme="light"]{
+    --bg:#f7f7fb; --surface:#ffffff; --surface-2:#f2f2f7; --elevated:#ffffff;
+    --border:#e6e6ee; --border-2:#dcdce6; --hairline:#ececf2;
+    --ink:#14141c; --n900:#14141c; --n700:#33333d; --n500:#5c5c68; --n400:#767682; --n300:#96969f;
+    --accent:#7c3aed; --accent-2:#6d28d9;
+    --green:#1a7f37; --blue:#0969da; --amber:#9a6700; --red:#cf222e; --purple:#7c3aed;
+    --code-bg:#f6f6fb; --code-border:#e6e6ee;
+    --shadow: 0 8px 30px rgba(20,20,30,0.08);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:'Segoe UI',Inter,system-ui,-apple-system,sans-serif;}
+  body{height:100vh;overflow:hidden;}
+  a{color:inherit;}
+  ::-webkit-scrollbar{width:9px;height:9px;}
+  ::-webkit-scrollbar-thumb{background:var(--border-2);border-radius:99px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+
+  .app{display:grid;grid-template-columns:320px 1fr;height:100vh;}
+  @media (max-width: 860px){ .app{grid-template-columns:1fr;} }
+
+  /* ── Sidebar ── */
+  .sidebar{
+    background:var(--surface); border-right:1px solid var(--border);
+    display:flex; flex-direction:column; height:100vh; overflow:hidden;
+  }
+  .sidebar-head{padding:20px 18px 14px; border-bottom:1px solid var(--border); flex-shrink:0;}
+  .brand{display:flex; align-items:center; gap:10px; margin-bottom:4px;}
+  .brand-mark{
+    width:30px;height:30px;border-radius:9px;flex-shrink:0;
+    background:linear-gradient(145deg,#2c2c2f 0%, #161618 55%, #0b0b0c 100%);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.14), 0 0 0 1px rgba(124,58,237,0.32);
+    display:flex;align-items:center;justify-content:center;
+    font-family:Georgia,serif; font-style:italic; font-weight:600; font-size:16px;
+    background-clip:text;
+  }
+  .brand-mark span{background:linear-gradient(160deg,#fff 0%,#d2d2d8 55%,#a6a6ae 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+  .brand-title{font-weight:800; font-size:15px; letter-spacing:-0.02em;}
+  .brand-sub{font-size:11.5px; color:var(--n400); margin:2px 0 0;}
+  .search-box{margin-top:12px;}
+  .search-box input{
+    width:100%; padding:9px 12px; border-radius:10px; font-size:13px;
+    background:var(--surface-2); border:1.5px solid var(--border-2); color:var(--ink); outline:none;
+  }
+  .search-box input:focus{border-color:var(--accent);}
+
+  .nav-scroll{flex:1; overflow-y:auto; padding:10px 10px 24px;}
+  .nav-overview-btn{
+    display:flex; align-items:center; gap:8px; width:100%; text-align:left;
+    padding:9px 12px; border-radius:10px; font-size:13px; font-weight:600;
+    background:transparent; border:none; color:var(--n700); cursor:pointer; margin-bottom:8px;
+  }
+  .nav-overview-btn:hover{background:var(--surface-2);}
+  .nav-overview-btn.active{background:var(--accent); color:#fff;}
+
+  .cat{margin-bottom:2px;}
+  .cat-head{
+    display:flex; align-items:center; gap:8px; width:100%; text-align:left;
+    padding:9px 10px; border-radius:9px; background:transparent; border:none; cursor:pointer;
+    color:var(--n700); font-size:12.5px; font-weight:700; letter-spacing:0.01em;
+  }
+  .cat-head:hover{background:var(--surface-2);}
+  .cat-num{
+    width:20px;height:20px;border-radius:6px;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:800;
+    background:var(--surface-2); color:var(--n400); border:1px solid var(--border-2);
+  }
+  .cat-chevron{margin-left:auto; font-size:10px; color:var(--n400); transition:transform .15s ease; flex-shrink:0;}
+  .cat.open .cat-chevron{transform:rotate(90deg);}
+  .cat-files{max-height:0; overflow:hidden; transition:max-height .2s ease;}
+  .cat.open .cat-files{max-height:2000px;}
+  .file-btn{
+    display:flex; align-items:center; gap:8px; width:100%; text-align:left;
+    padding:7px 10px 7px 38px; border-radius:8px; background:transparent; border:none; cursor:pointer;
+    color:var(--n500); font-size:12.5px; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  .file-btn:hover{background:var(--surface-2); color:var(--n900);}
+  .file-btn.active{background:color-mix(in srgb, var(--accent) 16%, transparent); color:var(--accent); font-weight:700;}
+  .file-dot{width:5px;height:5px;border-radius:50%;background:var(--border-2);flex-shrink:0;}
+  .file-btn.active .file-dot{background:var(--accent);}
+
+  /* ── Main ── */
+  .main{height:100vh; overflow-y:auto; padding:38px 48px 100px;}
+  @media (max-width: 860px){ .main{padding:24px 20px 80px;} .sidebar{height:auto; max-height:46vh;} .app{grid-template-rows:auto 1fr; height:100vh;} }
+
+  .crumbs{font-size:12px; color:var(--n400); margin-bottom:10px; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;}
+  .crumbs b{color:var(--n700); font-weight:600;}
+
+  .file-header{display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:26px; flex-wrap:wrap;}
+  .file-path{
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:22px; font-weight:700;
+    letter-spacing:-0.01em; color:var(--n900); word-break:break-all;
+  }
+  .file-path .dir{color:var(--n400); font-weight:400;}
+  .badges{display:flex; gap:8px; flex-wrap:wrap;}
+  .badge{
+    font-size:11px; font-weight:700; padding:5px 11px; border-radius:99px;
+    border:1px solid var(--border-2); color:var(--n500); background:var(--surface-2); white-space:nowrap;
+  }
+
+  .card{
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+    padding:22px 24px; margin-bottom:16px; box-shadow:var(--shadow);
+  }
+  .card h3{
+    margin:0 0 10px; font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:0.08em;
+    display:flex; align-items:center; gap:8px;
+  }
+  .card p{margin:0; font-size:14.5px; line-height:1.68; color:var(--n700);}
+  .card p + p{margin-top:10px;}
+  .card.what h3{color:var(--blue);}
+  .card.why h3{color:var(--amber);}
+  .card.concept h3{color:var(--purple);}
+  .card.connects h3{color:var(--green);}
+  .icon-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+  .what .icon-dot{background:var(--blue);}
+  .why .icon-dot{background:var(--amber);}
+  .concept .icon-dot{background:var(--purple);}
+  .connects .icon-dot{background:var(--green);}
+
+  .chip-row{display:flex; flex-wrap:wrap; gap:8px; margin-top:6px;}
+  .chip{
+    font-size:12.5px; font-weight:600; padding:6px 12px; border-radius:9px;
+    background:var(--surface-2); border:1px solid var(--border-2); color:var(--n700);
+    cursor:pointer; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  .chip:hover{border-color:var(--accent); color:var(--accent);}
+  .chip.plain{cursor:default; font-family:inherit; font-weight:500;}
+  .chip.plain:hover{border-color:var(--border-2); color:var(--n700);}
+
+  code.inline{
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:0.92em;
+    background:var(--code-bg); border:1px solid var(--code-border); border-radius:5px; padding:1px 6px;
+    color:var(--accent);
+  }
+
+  /* ── Overview page ── */
+  .ov-hero{margin-bottom:32px;}
+  .ov-hero h1{font-size:32px; font-weight:900; letter-spacing:-0.03em; margin:0 0 10px;}
+  .ov-hero p{font-size:15.5px; color:var(--n500); line-height:1.7; max-width:760px; margin:0;}
+  .ov-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:14px; margin:22px 0 34px;}
+  .ov-stat{background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:18px 20px;}
+  .ov-stat .num{font-size:26px; font-weight:800; letter-spacing:-0.02em;}
+  .ov-stat .lbl{font-size:12.5px; color:var(--n400); margin-top:2px;}
+  .ov-section{margin-bottom:34px;}
+  .ov-section h2{font-size:18px; font-weight:800; letter-spacing:-0.01em; margin:0 0 14px; display:flex; align-items:center; gap:10px;}
+  .ov-section h2 .n{width:26px;height:26px;border-radius:8px;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;}
+  .flow-box{
+    background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:20px 24px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:13px; line-height:2.1; color:var(--n500);
+    overflow-x:auto;
+  }
+  .flow-box b{color:var(--accent); font-weight:700;}
+  .flow-arrow{color:var(--n300); margin:0 8px;}
+  .ov-cat-list{display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:12px;}
+  .ov-cat-card{
+    background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:16px 18px;
+    cursor:pointer; transition:border-color .15s, transform .1s;
+  }
+  .ov-cat-card:hover{border-color:var(--accent); transform:translateY(-2px);}
+  .ov-cat-card .t{font-size:14px; font-weight:700; margin-bottom:4px;}
+  .ov-cat-card .d{font-size:12.5px; color:var(--n400); line-height:1.5;}
+  .ov-cat-card .c{font-size:11px; color:var(--n300); margin-top:8px;}
+
+  .bucket-row{display:flex; gap:10px; flex-wrap:wrap; margin:14px 0;}
+  .bucket-pill{
+    display:flex; align-items:center; gap:8px; padding:9px 16px; border-radius:99px;
+    font-size:13px; font-weight:700; border:1.5px solid var(--border-2); background:var(--surface);
+  }
+
+  .top-controls{position:sticky; top:0; z-index:5; margin:-38px -48px 30px; padding:14px 48px; background:linear-gradient(var(--bg) 70%, transparent); backdrop-filter:blur(6px); display:none;}
+  .footer-nav{display:flex; justify-content:space-between; margin-top:40px; padding-top:20px; border-top:1px solid var(--border); gap:12px;}
+  .footer-nav button{
+    background:var(--surface); border:1px solid var(--border-2); color:var(--n700); border-radius:10px;
+    padding:10px 16px; font-size:13px; font-weight:600; cursor:pointer; max-width:48%; text-align:left;
+  }
+  .footer-nav button:hover{border-color:var(--accent);}
+  .footer-nav button .lbl{display:block; font-size:10.5px; color:var(--n400); font-weight:700; text-transform:uppercase; margin-bottom:2px;}
+  .footer-nav .next{text-align:right; margin-left:auto;}
+
+  .empty-state{padding:80px 20px; text-align:center; color:var(--n400);}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="sidebar-head">
+      <div class="brand">
+        <span class="brand-mark"><span>S</span></span>
+        <span class="brand-title">Spendly</span>
+      </div>
+      <p class="brand-sub">Codebase guide — click a file to explore</p>
+      <div class="search-box"><input id="search" type="text" placeholder="Search files…" /></div>
+    </div>
+    <nav class="nav-scroll" id="navScroll"></nav>
+  </aside>
+  <main class="main" id="main"></main>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════════
+   DATA — every category and file, with the four-part breakdown.
+   ══════════════════════════════════════════════════════════════════ */
+const CATEGORIES = [
+{
+  id:'foundation', title:'Project Foundation & Config',
+  blurb:'The files that exist before a single line of app code runs — they tell tools like npm, Vite, and the browser how to build and serve everything else.',
+  files:[
+    { id:'package-json', path:'package.json', badges:['config'],
+      what:'The manifest npm reads to know the project\'s name, its four scripts (<code class="inline">dev</code>, <code class="inline">build</code>, <code class="inline">lint</code>, <code class="inline">preview</code>), and its dependency list: React 19, React Router 7, Framer Motion, and the Supabase JS client as runtime dependencies; Vite, the React plugin, Tailwind CSS v4, and oxlint as dev-only tooling.',
+      why:'Without it nothing else in this guide is reachable — <code class="inline">npm install</code> reads this file to know what to download, and <code class="inline">npm run dev</code> reads it to know which script actually starts the dev server.',
+      concept:'<b>Dependency management</b> and the runtime-vs-dev-time distinction: packages like React ship inside the production bundle, while packages like Vite and oxlint only ever run on the developer\'s machine.',
+      connects:['vite-config','index-html'] },
+    { id:'vite-config', path:'vite.config.js', badges:['build tool'],
+      what:'Configures Vite, the dev server and bundler. It registers two plugins — <code class="inline">@vitejs/plugin-react</code> (JSX transform + Fast Refresh) and <code class="inline">@tailwindcss/vite</code> (compiles Tailwind utility classes) — and sets the dev server to listen on <code class="inline">0.0.0.0</code> so a phone on the same Wi-Fi can load it for mobile testing.',
+      why:'This is the single point where "write JSX + Tailwind classes" becomes "runnable JavaScript + CSS the browser understands." Delete it and <code class="inline">npm run dev</code> has no idea how to process a <code class="inline">.jsx</code> file.',
+      concept:'<b>Build tooling / bundlers</b> — the plugin pipeline pattern, where each plugin transforms one part of the source (JSX → JS, Tailwind directives → CSS) before the browser ever sees it.',
+      connects:['package-json','index-html','index-css'] },
+    { id:'index-html', path:'index.html', badges:['entry point'],
+      what:'The one real HTML file in the whole app. It loads the Inter and Fraunces fonts, defines the <code class="inline">#root</code> div React mounts into, and — critically — runs a tiny inline script <em>before</em> anything else paints, which reads <code class="inline">localStorage</code> for a saved theme and stamps <code class="inline">data-theme</code> on <code class="inline">&lt;html&gt;</code> immediately.',
+      why:'That inline script exists to prevent a "flash of wrong theme": if React waited until <code class="inline">ThemeContext</code> mounted to apply dark mode, a dark-mode user would see a white flash on every load. Doing it synchronously in raw HTML/JS, before any framework code runs, closes that gap.',
+      concept:'<b>Critical rendering path</b> and race-condition avoidance — sometimes the fastest, most correct place to run logic is <em>before</em> your framework even boots.',
+      connects:['theme-context','app-jsx'] },
+    { id:'oxlintrc', path:'.oxlintrc.json', badges:['linting'],
+      what:'Configuration for oxlint, a Rust-based JavaScript/React linter. It enables two rules specifically: <code class="inline">react/rules-of-hooks</code> (catches hooks called conditionally or outside components) and <code class="inline">react/only-export-components</code> (flags non-component exports from files that also export components, which breaks Fast Refresh).',
+      why:'Hooks rule violations are a common source of subtle bugs (state that silently doesn\'t update, or updates on the wrong render) — catching them automatically at commit/build time is cheaper than debugging them at runtime.',
+      concept:'<b>Static analysis</b> — finding a class of bugs by examining source code structure, without ever running the program.',
+      connects:['package-json'] },
+    { id:'vercel-json', path:'vercel.json', badges:['deployment'],
+      what:'A single rewrite rule: every path (<code class="inline">/(.*)</code>) is served <code class="inline">index.html</code>.',
+      why:'Spendly is a client-side-routed single-page app — <code class="inline">react-router-dom</code> owns paths like <code class="inline">/dashboard</code> or <code class="inline">/groceries/deep-dive</code> entirely inside the browser. Without this rewrite, a user refreshing on <code class="inline">/dashboard</code> would hit Vercel\'s static file server, which has no <code class="inline">dashboard</code> file, and get a 404.',
+      concept:'<b>Client-side routing vs. server routing</b> — the server needs to be told "you don\'t own these URLs, just hand back the app shell and let JavaScript figure out what to render."',
+      connects:['app-jsx'] },
+    { id:'env-local', path:'.env.local', badges:['secrets','not committed'],
+      what:'Holds the two environment variables the Supabase client needs: <code class="inline">VITE_SUPABASE_URL</code> and <code class="inline">VITE_SUPABASE_ANON_KEY</code>. The <code class="inline">VITE_</code> prefix is required by Vite to expose a variable to browser code at all — anything without it stays server/build-only.',
+      why:'This is how the app knows <em>which</em> Supabase project to talk to, without hardcoding a URL and key into source control. It\'s listed in <code class="inline">.gitignore</code>, so every developer (or deploy environment) supplies their own copy.',
+      concept:'<b>Environment-based configuration</b> and the twelve-factor-app principle of keeping config out of code — the anon key here is a public, rate-limited key meant to be shipped to browsers (Row Level Security, not secrecy, is what protects the data; see <code class="inline">SUPABASE_SETUP.sql</code>).',
+      connects:['supabase-js','supabase-setup-sql'] },
+    { id:'gitignore', path:'.gitignore', badges:['config'],
+      what:'Tells Git which files/folders to never track: <code class="inline">node_modules</code>, build output (<code class="inline">dist</code>), editor folders, and — importantly — <code class="inline">.env*</code> and <code class="inline">.vercel</code>.',
+      why:'Keeps generated and machine-specific files out of version control, and specifically keeps local secrets from ever being committed.',
+      concept:'<b>Version control hygiene</b> — separating "source" (what should be tracked) from "derived/local state" (what shouldn\'t).',
+      connects:['env-local'] },
+    { id:'vercel-project-json', path:'.vercel/project.json', badges:['deployment','generated'],
+      what:'Auto-generated by the Vercel CLI. Links this local folder to a specific Vercel project (<code class="inline">projectId</code>, <code class="inline">orgId</code>, <code class="inline">projectName</code>) so <code class="inline">vercel</code> commands know where to deploy.',
+      why:'Without it, every deploy command would have to ask "which project is this?" — it\'s the local half of the link between your machine and Vercel\'s dashboard.',
+      concept:'<b>Deployment tooling / CLI-to-cloud linking</b> — a small local manifest standing in for a remote resource ID.',
+      connects:['vercel-json'] },
+  ]
+},
+{
+  id:'entry', title:'App Entry & Global Shell',
+  blurb:'The files that boot React, wrap the whole app in providers, and hold truly global CSS — everything else in the app lives inside what these four files set up.',
+  files:[
+    { id:'main-jsx', path:'src/main.jsx', badges:['entry point'],
+      what:'The actual JavaScript entry point <code class="inline">index.html</code> loads. It calls <code class="inline">createRoot(...).render()</code> to mount React into <code class="inline">#root</code>, wrapped in <code class="inline">StrictMode</code>, <code class="inline">ThemeProvider</code>, and <code class="inline">ToastProvider</code> — in that order — before rendering <code class="inline">&lt;App /&gt;</code>.',
+      why:'This is where "a bunch of component files" becomes "a running app." The provider order matters: both Theme and Toast need to be available to literally every screen, including the pages inside <code class="inline">App</code>, so they wrap it rather than living inside it.',
+      concept:'<b>React bootstrapping</b> and the <b>provider pattern</b> — wrapping a tree in context providers is how React shares global state (like theme or toast queue) without prop-drilling it through every component.',
+      connects:['app-jsx','theme-context','toast-context'] },
+    { id:'app-jsx', path:'src/App.jsx', badges:['routing'],
+      what:'Defines every URL route in the app using <code class="inline">react-router-dom</code>\'s <code class="inline">&lt;Routes&gt;</code>/<code class="inline">&lt;Route&gt;</code>. Public routes (<code class="inline">/</code>, <code class="inline">/login</code>, <code class="inline">/signup</code>) render directly; every signed-in route is wrapped in a local <code class="inline">Protected</code> helper that adds <code class="inline">ProtectedRoute</code> (the auth gate) plus the shared <code class="inline">Navbar</code> and <code class="inline">BottomNav</code> chrome around the page.',
+      why:'This is the map of the entire app — every page a user can reach corresponds to exactly one line here. It also encodes a real product decision: a legacy <code class="inline">/expenses</code> URL redirects to <code class="inline">/daily</code>, and any unknown path falls back to <code class="inline">/</code>, so old bookmarks and typos degrade gracefully instead of 404ing.',
+      concept:'<b>Client-side routing</b> and <b>route guarding</b> (the <code class="inline">Protected</code> wrapper is a textbook higher-order-component pattern: it wraps a page with the same auth check and chrome without repeating that logic ten times).',
+      connects:['protected-route','navbar','bottom-nav','auth-context'] },
+    { id:'app-css', path:'src/App.css', badges:['styling'],
+      what:'A near-empty stylesheet (one comment line) — a placeholder left over from the Vite/React starter template, imported nowhere.',
+      why:'Doesn\'t currently affect anything; it\'s dead weight, included here for completeness of the file tour rather than because it does work.',
+      concept:'N/A — a reminder that not every file in a codebase is load-bearing; part of reading a codebase is learning to recognize vestigial files.',
+      connects:[] },
+    { id:'index-css', path:'src/index.css', badges:['styling','theming'],
+      what:'The real global stylesheet, imported by <code class="inline">main.jsx</code>. Three jobs: (1) <code class="inline">@import "tailwindcss"</code> pulls in Tailwind\'s utility classes; (2) two large <code class="inline">:root</code> blocks define every CSS custom property (<code class="inline">--bg</code>, <code class="inline">--ink</code>, <code class="inline">--accent</code>, a full <code class="inline">--n900</code>…<code class="inline">--n150</code> neutral ramp, shadows, etc.) for light and dark themes; (3) shared classes and keyframe animations used across the app — <code class="inline">.card</code>, <code class="inline">.btn-ink</code>, <code class="inline">.modal-sheet</code>, <code class="inline">.fade-up</code>, <code class="inline">.pop-in</code>, and more.',
+      why:'This is what makes the whole app "just work" visually in both themes: every component reaches for a variable like <code class="inline">var(--n900)</code> instead of a hardcoded hex, so flipping <code class="inline">data-theme</code> on <code class="inline">&lt;html&gt;</code> re-themes the entire UI instantly with zero component-level logic.',
+      concept:'<b>Design tokens / CSS custom properties</b> as a theming mechanism, plus a small in-house animation and utility-class library layered on top of Tailwind — a common real-world pattern where a utility framework handles layout and a hand-written layer handles the app\'s specific visual identity.',
+      connects:['theme-context','vite-config'] },
+  ]
+},
+{
+  id:'backend', title:'Backend & Database Layer',
+  blurb:'Everything about how the app talks to Supabase (hosted Postgres + auth) and what the database itself looks like.',
+  files:[
+    { id:'supabase-js', path:'src/lib/supabase.js', badges:['database','auth'],
+      what:'Creates and exports the single <code class="inline">supabase</code> client every other file uses to talk to the database. It also implements a custom "remember me" storage adapter: a <code class="inline">hybridStorage</code> object that routes the auth session into <code class="inline">localStorage</code> (persists ~30 days) or <code class="inline">sessionStorage</code> (clears on browser close) based on a user preference saved via <code class="inline">setRememberMe()</code>.',
+      why:'Every single database read/write in the app — every <code class="inline">lib/</code> file, every page — goes through this one client instance. The remember-me logic is the difference between "stay signed in" actually working as an opt-out choice rather than a silent default.',
+      concept:'<b>Client SDK initialization</b> and the <b>adapter pattern</b> — Supabase\'s auth module accepts any object shaped like the Storage interface, so swapping storage backends per user choice doesn\'t require touching Supabase\'s own code at all.',
+      connects:['env-local','auth-context'] },
+    { id:'schema-js', path:'src/lib/schema.js', badges:['database'],
+      what:'Exports the entire database schema as a big SQL string (<code class="inline">SETUP_SQL</code>) the app can display and let a user copy, plus <code class="inline">isMissingSchema(error)</code> — a helper that inspects a Supabase/Postgres error (checking known error codes like <code class="inline">42P01</code> "undefined table" and <code class="inline">42703</code> "undefined column", or matching the message against a regex of expected table names) to decide "does this failure mean the database just isn\'t set up yet?"',
+      why:'The app\'s anon key can\'t run DDL (CREATE TABLE etc.) for security reasons, so there\'s no way to auto-provision the schema on first run. Instead, every page that hits a missing-schema error shows <code class="inline">SetupScreen</code>, which pulls this exact SQL — turning a cryptic 42P01 error into a one-click "copy this, paste it into Supabase, done" flow.',
+      concept:'<b>Graceful degradation</b> and <b>schema-as-code</b> — treating "the database migration hasn\'t run yet" as a recoverable, self-service state rather than a crash.',
+      connects:['supabase-setup-sql','setup-screen'] },
+    { id:'supabase-setup-sql', path:'SUPABASE_SETUP.sql', badges:['database','SQL'],
+      what:'The canonical, human-run version of the same SQL embedded in <code class="inline">schema.js</code> (kept in sync by convention, run once via Supabase\'s SQL editor). Defines 17 tables covering budgets, the four expense buckets, commitments (<code class="inline">fixed_costs</code>), day types and daily logs, and two "deep-dive" feature areas (Daily Spend and Groceries), each with indexes and Row Level Security policies.',
+      why:'This <em>is</em> the data model of the entire app. Two design patterns recur throughout: (1) every <code class="inline">alter table ... add column if not exists</code> statement is additive and idempotent, so re-running the whole script is always safe; (2) nearly every table has <code class="inline">enable row level security</code> plus a policy like <code class="inline">using (auth.uid() = user_id)</code> — meaning the database itself refuses to return or accept rows that don\'t belong to the requesting user, independent of any app-level check.',
+      concept:'<b>Relational schema design</b>, <b>idempotent migrations</b>, and — most importantly — <b>Row Level Security (RLS)</b>: a defense-in-depth security model where authorization is enforced at the database layer, not just in application code, so a bug in a React component can\'t leak another user\'s expenses.',
+      connects:['schema-js','supabase-js'] },
+  ]
+},
+{
+  id:'auth', title:'Auth & Route Protection',
+  blurb:'How a visitor becomes a signed-in user, how a session persists, and how pages that require a session refuse to render for anyone else.',
+  files:[
+    { id:'auth-context', path:'src/context/AuthContext.jsx', badges:['context','auth'],
+      what:'A React Context provider that tracks the current Supabase auth session. On mount it calls <code class="inline">supabase.auth.getSession()</code> once to get the initial state, then subscribes to <code class="inline">onAuthStateChange</code> so <code class="inline">user</code> updates automatically on sign-in, sign-out, or token refresh — anywhere in the app, without polling. Exposes <code class="inline">{ user, loading }</code> via the <code class="inline">useAuth()</code> hook.',
+      why:'Nearly every page in the app calls <code class="inline">useAuth()</code> to get <code class="inline">user.id</code> for its Supabase queries. Centralizing the subscription here means there\'s exactly one listener for auth state, not one per page.',
+      concept:'<b>React Context</b> for global state, and the <b>observer pattern</b> — subscribing to a stream of auth events rather than re-checking session state on every render.',
+      connects:['supabase-js','protected-route','app-jsx'] },
+    { id:'protected-route', path:'src/components/ProtectedRoute.jsx', badges:['routing','auth'],
+      what:'A wrapper component: while <code class="inline">AuthContext</code> is still resolving the initial session it shows a spinner; once resolved, it renders its children if <code class="inline">user</code> exists, or redirects to <code class="inline">/login</code> (via <code class="inline">&lt;Navigate replace&gt;</code>) if not.',
+      why:'This is the single gate every private page passes through — see how <code class="inline">App.jsx</code>\'s <code class="inline">Protected</code> helper wraps every signed-in route in it. One component, one auth check, reused a dozen times.',
+      concept:'<b>Route guards / higher-order component pattern</b> — composing access control as a wrapper rather than duplicating an <code class="inline">if (!user) redirect</code> check inside every page component.',
+      connects:['auth-context','app-jsx'] },
+    { id:'auth-extras', path:'src/components/AuthExtras.jsx', badges:['UI'],
+      what:'Three small presentational pieces shared by Login and Signup: <code class="inline">AuthDecor</code> (the floating decorative chips/gradient behind the auth card, desktop-only), <code class="inline">RememberMe</code> (a custom-styled checkbox), and <code class="inline">SuccessOverlay</code> (the full-screen checkmark animation shown right before redirecting to the dashboard).',
+      why:'Keeps Login.jsx and Signup.jsx from duplicating the same decorative and success-state markup — both pages import and reuse these exact three pieces.',
+      concept:'<b>Component extraction for reuse</b> — recognizing that two nearly-identical pages should share their non-form chrome as separate components rather than copy-pasting JSX.',
+      connects:['login-page','signup-page'] },
+    { id:'login-page', path:'src/pages/Login.jsx', badges:['page','auth'],
+      what:'Email/password sign-in form. Calls <code class="inline">setRememberMe(remember)</code> (writing the storage preference) <em>before</em> <code class="inline">supabase.auth.signInWithPassword()</code>, so the resulting session lands in the right storage from the start. On success it shows <code class="inline">SuccessOverlay</code> for 1.4s, then navigates to <code class="inline">/dashboard</code> with a "Welcome back!" toast message passed via router state.',
+      why:'This is the front door for returning users. If already signed in, it redirects straight to the dashboard instead of showing the form again — a small but important UX guard against a signed-in user landing back on a login screen.',
+      concept:'<b>Controlled forms</b> (React state driving every input), <b>optimistic UI sequencing</b> (show success, then navigate, rather than navigate instantly), and passing transient data between routes via <code class="inline">navigate(..., { state })</code>.',
+      connects:['auth-extras','supabase-js','dashboard-page'] },
+    { id:'signup-page', path:'src/pages/Signup.jsx', badges:['page','auth'],
+      what:'Account creation form. Handles three distinct outcomes from <code class="inline">supabase.auth.signUp()</code>: an error, an immediate session (email confirmation disabled — go straight to the dashboard), or no session with no error (confirmation email sent — show a "check your inbox" state instead of the form).',
+      why:'Supabase\'s signup behavior depends on project-level email-confirmation settings, and this page has to handle either configuration correctly rather than assuming one.',
+      concept:'<b>Handling multi-outcome async APIs</b> — modeling three real states (error / immediate success / pending confirmation) instead of a naive success/failure boolean.',
+      connects:['auth-extras','supabase-js'] },
+  ]
+},
+{
+  id:'globalstate', title:'Global State Contexts',
+  blurb:'Two more React Contexts — outside the auth path — that anything in the app can reach into: the light/dark theme, and the toast notification queue.',
+  files:[
+    { id:'theme-context', path:'src/context/ThemeContext.jsx', badges:['context','theming'],
+      what:'Owns the current theme (<code class="inline">\'light\'</code> or <code class="inline">\'dark\'</code>), initialized from <code class="inline">localStorage</code> and defaulting to dark ("Spendly is dark-first"). Every time <code class="inline">theme</code> changes, an effect sets <code class="inline">data-theme</code> on <code class="inline">&lt;html&gt;</code> and re-saves it to <code class="inline">localStorage</code>. Exposes <code class="inline">{ theme, toggle, setTheme }</code> via <code class="inline">useTheme()</code>.',
+      why:'This is the React-side counterpart to the inline script in <code class="inline">index.html</code> — that script sets the theme before first paint to avoid a flash; this context takes over afterward so the app can actually change it interactively (via <code class="inline">ThemeToggle</code>) and keep it persisted.',
+      concept:'<b>Context + effect synchronization with an external system</b> (the DOM attribute and <code class="inline">localStorage</code>) — a pattern for keeping React state and browser state in lockstep in both directions.',
+      connects:['index-html','theme-toggle','index-css'] },
+    { id:'toast-context', path:'src/context/ToastContext.jsx', badges:['context','UI'],
+      what:'A queue-based notification system. <code class="inline">toast({ message, icon, actionLabel, onAction, tone, duration })</code> pushes a toast (keeping at most the last 3 visible), auto-dismisses it after <code class="inline">duration</code> (default 4.2s) via a tracked <code class="inline">setTimeout</code>, and renders the stack fixed at the bottom of the screen. Toasts can carry an optional action button (used for "Undo" on deletes).',
+      why:'Rather than every page building its own "show a temporary message" logic, this is the one shared mechanism — used for things like "Day logged 🎉" on the dashboard or the undo-delete flow in Daily Spend.',
+      concept:'<b>Imperative API over declarative state</b> — <code class="inline">toast()</code> looks like a normal function call from any component, but under the hood it\'s pushing into shared context state and letting React re-render the toast stack; also a small example of <b>timer lifecycle management</b> (tracking and clearing per-toast timeouts in a <code class="inline">Map</code> via a ref).',
+      connects:['daily-spend-page','dashboard-page'] },
+  ]
+},
+{
+  id:'lib', title:'Core Domain Logic — src/lib/',
+  blurb:'The "business logic" layer: pure calculations and Supabase queries with no JSX at all. This is where the app\'s actual rules — what counts as spent, which bucket something belongs in, how a month is defined — live, deliberately separated from anything visual.',
+  files:[
+    { id:'buckets-js', path:'src/lib/buckets.js', badges:['domain logic'],
+      what:'Defines the four buckets (<code class="inline">daily</code>, <code class="inline">groceries</code>, <code class="inline">bills</code>, <code class="inline">commitments</code>) as a static array with name/icon/color/tagline, plus functions to read and lazily create each user\'s <code class="inline">bucket_settings</code> row (mini-budget, cap period, custom icon/color). <code class="inline">bucketView()</code> merges the static meta with a user\'s stored overrides into one object every screen can render from.',
+      why:'This is the single source of truth for "what are the four buckets and what do they look like" — <code class="inline">Dashboard</code>, <code class="inline">AllTransactions</code>, and every composer import <code class="inline">BUCKETS</code>/<code class="inline">bucketMeta()</code> from here rather than redefining bucket metadata locally.',
+      concept:'<b>Separating static config from user data</b>, and a <b>self-healing default pattern</b> — <code class="inline">ensureBucketSettings()</code> inserts only the rows a user is missing on every load, so a fresh account or a newly-added bucket never needs a separate migration step.',
+      connects:['dashboard-page','bucket-detail-page','commitments-page'] },
+    { id:'bucket-math-js', path:'src/lib/bucketMath.js', badges:['domain logic','pure function'],
+      what:'A single pure function, <code class="inline">splitByBucket()</code>, that takes a month\'s raw rows (expenses, daily logs, commitment instances) and returns per-bucket totals — Daily Spend counts both plain expenses <em>and</em> day-log totals; the other three sum directly. Deliberately has zero I/O, so it can be unit-tested in isolation.',
+      why:'Guarantees the four bucket totals always sum exactly to the overall <code class="inline">spent</code> figure — a subtle correctness property that would be easy to accidentally break if this math were duplicated across screens instead of centralized once.',
+      concept:'<b>Pure functions</b> as a testability and correctness strategy — no network calls, no dates, no randomness, just data in and data out, which makes its behavior fully predictable and independently verifiable.',
+      connects:['budget-js'] },
+    { id:'budget-js', path:'src/lib/budget.js', badges:['domain logic','database'],
+      what:'<code class="inline">loadBudgetSnapshot(userId, month)</code> is described in its own comment as "THE budget calculation — the single source of truth." It fires six Supabase queries in parallel via <code class="inline">Promise.all</code> (budget row, commitment instances, expenses, daily logs, bucket settings, recent expenses), feeds the results through <code class="inline">splitByBucket()</code>, and returns one big snapshot object with every number the Dashboard needs — <code class="inline">remaining</code>, <code class="inline">usedFraction</code>, <code class="inline">overBudget</code>, per-bucket totals, and more. Also exports <code class="inline">resetMonth()</code>, which deletes a month\'s expenses/logs/commitment-instances/budget row in parallel.',
+      why:'Every number displayed on the Dashboard — the ring, the "left this month" figure, each bucket card\'s progress bar — is derived from this one function\'s output, never recalculated ad hoc per component. That\'s what keeps the four buckets and the main ring mathematically consistent with each other.',
+      concept:'<b>Data aggregation / the "snapshot" pattern</b> — fetching everything a screen needs in one coordinated batch and deriving all display values from it, versus letting each component independently query and compute (which invites drift and inconsistency).',
+      connects:['bucket-math-js','dashboard-page','schema-js'] },
+    { id:'budgets-js', path:'src/lib/budgets.js', badges:['domain logic','database'],
+      what:'CRUD for the <code class="inline">budgets</code> table. <code class="inline">upsertBudget()</code> does a manual get-then-update-or-insert rather than a database-level upsert, specifically so it can cleanly handle a legacy row that might already exist for a month without depending on a unique constraint being in place.',
+      why:'This is what <code class="inline">BudgetSettings.jsx</code> calls when a user saves their monthly caps — it\'s the write path that ultimately feeds <code class="inline">loadBudgetSnapshot</code>\'s <code class="inline">main</code> figure.',
+      concept:'<b>Upsert semantics</b> implemented explicitly in application code, and defensive handling of a database that might be mid-migration.',
+      connects:['budget-settings-page','budget-js'] },
+    { id:'categories-js', path:'src/lib/categories.js', badges:['domain logic','static data'],
+      what:'A static catalogue of expense categories (Rent, Food, Transport, Gifts, etc.), each tagged <code class="inline">fixed</code>, <code class="inline">variable</code>, or <code class="inline">oneoff</code>, with a color and emoji per type. <code class="inline">getCategoryMeta(name)</code> looks up a category and falls back to a generic "Other" shape for anything unrecognized.',
+      why:'Used anywhere an individual expense needs a colored icon and label — <code class="inline">RecentExpenses</code>, <code class="inline">DailySpend</code>\'s category picker, <code class="inline">AllTransactions</code>. The fallback in <code class="inline">getCategoryMeta</code> means a category name that doesn\'t exist in the static list still renders something sane instead of crashing.',
+      concept:'<b>Static reference data with a safe-default lookup</b> — a small but common pattern for classification data that\'s cheap to hardcode client-side rather than fetch from a database table.',
+      connects:['classify-js','recent-expenses'] },
+    { id:'classify-js', path:'src/lib/classify.js', badges:['domain logic','pure function'],
+      what:'Keyword-based bucket classification. Three regexes match against expense titles: <code class="inline">COMMITMENT_RE</code> catches words like "rent," "tuition," "netflix"; <code class="inline">BILL_RE</code> catches "electricity," "wifi," "gas"; <code class="inline">GROCERY_RE</code> catches food-stock words like "chicken," "rice," "onion." <code class="inline">suggestBucket(title)</code> returns the first match or <code class="inline">null</code>. A second function, <code class="inline">suggestBillType()</code>, guesses which specific bill type (Electricity, Water, Internet…) a title describes.',
+      why:'This one function powers the cross-bucket "heads up, this looks like it belongs elsewhere" warnings shown on every composer in the app (Daily, Groceries, Bills, Commitments) — the core UX idea that typing "electricity ৳1200" into the wrong screen gets caught immediately instead of silently distorting a bucket\'s numbers.',
+      concept:'<b>Rule-based (non-ML) text classification</b> — a lightweight, fully deterministic alternative to an actual NLP model, appropriate here because the domain (a handful of recognizable keyword categories) doesn\'t need anything heavier, and it\'s explicitly a suggestion the user can always override.',
+      connects:['use-bucket-redirect','bucket-mismatch-warning','bucket-redirect-chips'] },
+    { id:'commitments-js', path:'src/lib/commitments.js', badges:['domain logic','database'],
+      what:'Manages the Commitments bucket, which is backed by the <code class="inline">fixed_costs</code> table using a template/instance split: a row with <code class="inline">month = null</code> is a standing template ("Rent ৳8000, monthly"); a row with <code class="inline">month = \'2026-08\'</code> is that month\'s actual, independently-editable reservation. <code class="inline">listSuggestedCommitments()</code> finds templates that don\'t yet have an instance for the current month; <code class="inline">addCommitmentInstance()</code> materializes one (with a double-tap guard); <code class="inline">stopCommitment()</code> deactivates a template and removes only the current month\'s instance, preserving history.',
+      why:'This template/instance split is the mechanism behind a specific, important product rule: adding a recurring commitment never silently reserves budget for future months on its own — a user has to explicitly tap "Add" each month, so "spent" always reflects what was actually confirmed, not just what\'s theoretically recurring.',
+      concept:'<b>Template/instance (or "definition vs. occurrence") data modeling</b> — a common pattern for recurring things (subscriptions, recurring calendar events) where the recurring rule and any single occurrence need to be edited independently.',
+      connects:['commitments-page','buckets-js'] },
+    { id:'daily-deep-dive-js', path:'src/lib/dailyDeepDive.js', badges:['domain logic','database'],
+      what:'Data layer for the standalone Daily Spend deep-dive calculator (a planning tool separate from real spending). Covers day types (name + cost-per-day + reusable "default items"), a daily log keyed one row per calendar date, and monthly allocations (how many days of each type this month). <code class="inline">sendDayToRealLog()</code> is the deliberate bridge out of this sandbox: it writes a real <code class="inline">daily_logs</code> row, and <code class="inline">markLogSent()</code> records the link so re-sending updates the same real row instead of duplicating it.',
+      why:'This whole file backs a tool that lets a student <em>plan</em> a month ("12 Uni Days at ৳195, 10 Normal Days at ৳150…") before it happens, entirely separate from the real budget, then selectively push individual days into the real Daily Spend total once they\'re confirmed.',
+      concept:'<b>Sandboxed / what-if state</b> kept deliberately isolated from production data, with one explicit, auditable bridge (<code class="inline">sendDayToRealLog</code> + <code class="inline">sent_log_id</code>) back into the real system — a pattern also seen in draft/publish workflows elsewhere in software.',
+      connects:['daily-deep-dive-page','daily-logs-js','deep-dive-day-modal'] },
+    { id:'daily-logs-js', path:'src/lib/dailyLogs.js', badges:['domain logic','database'],
+      what:'Simple CRUD for the <em>real</em> <code class="inline">daily_logs</code> table — one row per whole-day log, storing a JSONB array of <code class="inline">{ label, amount }</code> line items plus a precomputed <code class="inline">total_spent</code>.',
+      why:'This is what <code class="inline">LogTodayModal</code> writes to when a user logs "today was a Uni Day" — and what <code class="inline">loadBudgetSnapshot</code> reads to fold into Daily Spend\'s total.',
+      concept:'<b>Denormalized storage</b> — storing <code class="inline">total_spent</code> alongside the raw items rather than recomputing a sum on every read is a deliberate trade of a little write-time work for cheaper, simpler reads everywhere else.',
+      connects:['log-today-modal','budget-js'] },
+    { id:'dates-js', path:'src/lib/dates.js', badges:['domain logic','pure function'],
+      what:'The shared date/calendar toolkit — everything from <code class="inline">monthKey()</code> (today as <code class="inline">"2026-08"</code>) and <code class="inline">monthRange()</code> (a month\'s start/end for query filters) to <code class="inline">groupDatesByWeek()</code> (splits a month into Sunday-start weeks, clipped to the month boundary) and <code class="inline">isWeekendDay()</code>, which hardcodes Bangladesh\'s weekend as Friday/Saturday rather than the Western Saturday/Sunday.',
+      why:'Every screen that deals with "this month," "this week," or "which day is this" imports from here rather than hand-rolling date math — a classic source of off-by-one bugs if duplicated. The Bangladesh-specific weekend logic is a good example of domain knowledge (this app is built for BRAC University students) encoded directly into shared utility code.',
+      concept:'<b>Locale-aware date logic</b> and centralizing date arithmetic — JavaScript\'s native <code class="inline">Date</code> is notoriously easy to misuse (month is 0-indexed, timezones are sharp edges), so wrapping it in well-named, well-tested helpers used everywhere reduces the surface area for date bugs.',
+      connects:['budget-js','daily-deep-dive-js','grocery-deep-dive-js'] },
+    { id:'day-types-js', path:'src/lib/dayTypes.js', badges:['domain logic','database'],
+      what:'Manages the real <code class="inline">day_types</code> table (Uni Day, Normal Day, Occasional Day, plus any custom ones) used by "Log Today." <code class="inline">seedDefaultDayTypesIfEmpty()</code> inserts three sensible defaults for a brand-new user, gated by a <code class="inline">localStorage</code> flag so a user who deletes them all doesn\'t have them silently reappear. <code class="inline">summarizeDayTypes()</code> rolls up spend and days-logged per type for the dashboard.',
+      why:'Day types are the template mechanism behind the app\'s fastest logging flow — tap "Uni Day," confirm a couple of pre-filled amounts, done. The one-time-seed-with-an-escape-hatch pattern balances "helpful defaults" against "never fight the user\'s own deletion."',
+      concept:'<b>First-run seeding with a persistent opt-out flag</b> — a small but real UX/data-modeling problem: how do you give new users a good starting point without that logic re-triggering forever.',
+      connects:['log-today-modal','daily-spend-page','day-types-modal'] },
+    { id:'expenses-js', path:'src/lib/expenses.js', badges:['domain logic','database'],
+      what:'<code class="inline">insertExpenses(rows)</code> wraps the insert into the <code class="inline">expenses</code> table with a retry loop: if Postgres rejects the insert because a column like <code class="inline">mode_id</code> or <code class="inline">category_name</code> doesn\'t exist yet on a given user\'s table, it strips just that key and retries — up to twice — rather than failing the whole "log an expense" action.',
+      why:'This is the single write path every composer (Daily, Groceries, Bills) funnels through, and its resilience matters because it means a partially-migrated database degrades gracefully (an expense still saves, just without the newer optional field) instead of blocking the core action entirely.',
+      concept:'<b>Defensive, resilient writes</b> — handling schema drift at the call site with a bounded retry rather than assuming a perfectly-migrated database, which is realistic for a project whose schema evolved additively over time (see <code class="inline">SUPABASE_SETUP.sql</code>).',
+      connects:['bucket-detail-page','daily-spend-page','commitments-page'] },
+    { id:'format-js', path:'src/lib/format.js', badges:['domain logic','pure function'],
+      what:'Two tiny functions: <code class="inline">money(n)</code> formats a number as <code class="inline">৳1,234.50</code> (two decimals) and <code class="inline">money0(n)</code> as <code class="inline">৳1,235</code> (no decimals, for big at-a-glance numbers), both using <code class="inline">toLocaleString</code> for comma grouping.',
+      why:'Every money figure in the entire app — dozens of components and pages — goes through one of these two functions, guaranteeing the Bangladeshi Taka symbol and number formatting are 100% consistent everywhere, with no place accidentally showing "1234.5" or a stray currency symbol.',
+      concept:'<b>Single-responsibility formatting utilities</b> — deliberately tiny and boring, which is exactly why they\'re trustworthy to reuse everywhere instead of re-implementing number formatting inline each time.',
+      connects:[] },
+    { id:'grocery-deep-dive-js', path:'src/lib/groceryDeepDive.js', badges:['domain logic','database'],
+      what:'Data layer for the Groceries deep-dive — deliberately the flattest of the two deep-dive tools: no item pool, no trip wrapper, just one row per thing bought in <code class="inline">grocery_log_items</code> (date, name, amount). <code class="inline">groupItemsByWeek()</code> buckets a month\'s items into calendar weeks for the weekly-total view.',
+      why:'Where the Daily Spend deep-dive has day types and an allocator, this one is intentionally simpler — the code comment notes it was built "lighter, on request." A good example of matching data-model complexity to the actual feature, not defaulting to the more elaborate pattern just because a similar one exists nearby.',
+      concept:'<b>Right-sizing a data model</b> — resisting unnecessary abstraction (no item-pool/trip-wrapper layer) when the simpler flat-log shape fully satisfies the feature\'s needs.',
+      connects:['groceries-deep-dive-page','dates-js'] },
+    { id:'savings-js', path:'src/lib/savings.js', badges:['domain logic','database'],
+      what:'Straightforward CRUD (<code class="inline">listSavings</code>, <code class="inline">createSaving</code>, <code class="inline">updateSaving</code>, <code class="inline">deleteSaving</code>) against a <code class="inline">savings</code> table — label, amount, optional note, per user.',
+      why:'Backs the standalone Savings page, which is intentionally disconnected from the budget/bucket system — it\'s a simple ledger of where savings came from, not something that nets against the monthly budget.',
+      concept:'<b>The simplest possible CRUD module</b> — useful as a contrast point against the more elaborate files in this folder (like <code class="inline">commitments.js</code>) to see how much complexity is actually earned by a feature\'s real requirements.',
+      connects:['savings-page'] },
+    { id:'transactions-js', path:'src/lib/transactions.js', badges:['domain logic','database'],
+      what:'<code class="inline">loadAllTransactions(userId)</code> queries all three sources of spend (<code class="inline">expenses</code>, <code class="inline">daily_logs</code>, materialized <code class="inline">fixed_costs</code>) in parallel and flattens them into one unified shape — <code class="inline">{ id, date, title, amount, bucket, categoryLabel, source }</code> — sorted newest first. Explicitly documented as read-only: it never feeds the actual balance/budget math.',
+      why:'Powers the "All Transactions" browsing screen, where a user wants one searchable, filterable list across every bucket — without that convenience view becoming a second, competing source of truth for what "spent" means (that stays exclusively in <code class="inline">budget.js</code>/<code class="inline">bucketMath.js</code>).',
+      concept:'<b>Read models vs. write models (CQRS-flavored thinking)</b> — deliberately keeping a denormalized, UI-friendly "view" of the data separate from the authoritative calculation path, so optimizing one doesn\'t risk corrupting the other.',
+      connects:['all-transactions-page','bucket-math-js'] },
+  ]
+},
+{
+  id:'hooks', title:'Custom Hooks',
+  blurb:'Small, reusable pieces of stateful logic extracted out of components — the hooks pattern for sharing behavior (not just UI) across the app.',
+  files:[
+    { id:'use-bucket-redirect', path:'src/hooks/useBucketRedirect.js', badges:['hook','domain logic'],
+      what:'Drives the "which bucket is this actually going to?" picker shared by every composer. Its key design choice, called out directly in its own comment: <code class="inline">target</code> is computed fresh on every render from <code class="inline">text</code> and <code class="inline">manualTarget</code> via <code class="inline">useMemo</code> — never stored as its own separately-updated state.',
+      why:'The comment explains the bug this avoids: an earlier version used a <code class="inline">useEffect</code> to sync a bucket-choice state after typing, and if the user hit Enter before that effect caught up, the save could silently use a stale bucket. Deriving the value synchronously instead of through an effect makes that entire bug class structurally impossible.',
+      concept:'<b>Derived state vs. synchronized state</b> — one of the most important React lessons: prefer computing a value directly from its inputs during render over mirroring it into a separate piece of state kept "in sync" via an effect, because the sync can always lag by one render.',
+      connects:['classify-js','bucket-redirect-chips','daily-spend-page'] },
+    { id:'use-count-up', path:'src/hooks/useCountUp.js', badges:['hook','UI'],
+      what:'Animates a displayed number easing from its previous value toward a new <code class="inline">target</code> using <code class="inline">requestAnimationFrame</code> and a cubic ease-out curve, whenever <code class="inline">target</code> changes (and only while <code class="inline">run</code> is true).',
+      why:'Used on the Dashboard so the big "remaining" and "spent" figures visibly count up/down when the budget snapshot loads or changes, instead of just snapping to a new number — a small but deliberate polish detail.',
+      concept:'<b>Imperative animation inside a declarative framework</b> — using <code class="inline">requestAnimationFrame</code> directly (rather than CSS transitions) because the value being animated is a number driving text content, and correctly cleaning up the animation frame on unmount to avoid a classic memory-leak/warning.',
+      connects:['dashboard-page'] },
+  ]
+},
+{
+  id:'components', title:'Reusable UI Components',
+  blurb:'Building blocks used across multiple pages — everything from navigation chrome to modals to the small formatted-money bar every bucket screen relies on.',
+  files:[
+    { id:'bottom-nav', path:'src/components/BottomNav.jsx', badges:['UI','navigation','mobile'],
+      what:'The mobile-only bottom tab bar (hidden on desktop via <code class="inline">md:hidden</code>): Home, Daily, a raised center "＋" button that opens Log Today, All, and Savings. It preserves an in-progress <code class="inline">?month=</code> query param when navigating between the two month-aware tabs (Home, All).',
+      why:'On a phone, this is the primary way a student moves around the app day to day — reachable with a thumb from anywhere, which is why "Log Today" gets the most visually prominent slot (raised, centered, high contrast) rather than being buried in a menu.',
+      concept:'<b>Responsive, platform-appropriate navigation</b> — recognizing that "one nav pattern for all screen sizes" is worse than a dedicated mobile tab bar plus a separate desktop top nav (<code class="inline">Navbar</code>), and preserving query state across navigation so switching tabs doesn\'t silently reset what month you were looking at.',
+      connects:['navbar','dashboard-page'] },
+    { id:'bucket-card', path:'src/components/BucketCard.jsx', badges:['UI'],
+      what:'One of the four colored boxes on the Dashboard representing a bucket — icon, name, tagline, a compact <code class="inline">MiniBudgetBar</code>, and a two-item preview of recent entries. The whole card is a button that navigates to that bucket\'s detail screen.',
+      why:'This is the at-a-glance summary that lets a user see all four buckets\' health without opening any of them — the entry point into each bucket\'s dedicated screen.',
+      concept:'<b>Presentational component composition</b> — accepts fully pre-computed props (<code class="inline">used</code>, <code class="inline">cap</code>, <code class="inline">entries</code>) rather than fetching its own data, keeping it simple and testable in isolation from Supabase.',
+      connects:['mini-budget-bar','dashboard-page'] },
+    { id:'bucket-mismatch-warning', path:'src/components/BucketMismatchWarning.jsx', badges:['UI'],
+      what:'A small inline warning shown while typing in any composer: if <code class="inline">suggestBucket(text)</code> returns a bucket different from the current screen\'s bucket, it shows "That looks like Bills, not here" with a link to jump there. Never blocks saving — purely advisory, since keyword matches can be wrong.',
+      why:'Used specifically inside <code class="inline">LogTodayModal</code>\'s per-field inputs, catching a case like someone typing "Electricity" into a Uni Day expense field.',
+      concept:'<b>Non-blocking validation / soft guardrails</b> — a UX philosophy choice: surface a heuristic-based warning immediately, but trust the user\'s judgment over the heuristic rather than hard-locking the form.',
+      connects:['classify-js','log-today-modal'] },
+    { id:'bucket-picker', path:'src/components/BucketPicker.jsx', badges:['UI'],
+      what:'A row of chips (Daily / Groceries / Bills — deliberately excluding Commitments, since that\'s a separate data store, not a simple bucket swap) letting a user reclassify an <em>existing</em> expense into a different bucket, used inside edit modals.',
+      why:'The one-time fix for "I logged this in the wrong bucket" — distinct from <code class="inline">BucketRedirectChips</code>, which handles the same problem but for a <em>new</em>, not-yet-saved entry.',
+      concept:'<b>Distinguishing "create" vs "edit" flows</b> for what looks like the same underlying action (pick a bucket) — worth noticing how the app uses two different, purpose-built components rather than forcing one generic picker to serve both contexts.',
+      connects:['bucket-redirect-chips','bucket-detail-page','daily-spend-page'] },
+    { id:'bucket-redirect-chips', path:'src/components/BucketRedirectChips.jsx', badges:['UI'],
+      what:'The mandatory, always-visible "which bucket is this going to?" chip row shown the instant any text is typed in a composer — one for each of the four buckets. Tapping Daily/Groceries/Bills actually redirects where the entry will save (via <code class="inline">setTarget</code> from <code class="inline">useBucketRedirect</code>); tapping Commitments is a link to <code class="inline">/commitments</code> instead, since a commitment needs its own due-date/repeat setup that can\'t be created inline.',
+      why:'This is the concrete UI for the app\'s core anti-miscategorization idea described in the README: "a bill typed into the wrong screen gets caught before it distorts the daily-spending picture." Every composer in the app (Daily, Bills/Groceries via BucketDetail, Commitments) renders this exact same component for a consistent experience.',
+      concept:'<b>Consistent cross-screen UI for a cross-cutting concern</b> — rather than four different bucket-mismatch UIs on four different pages, one shared component enforces the same interaction everywhere.',
+      connects:['use-bucket-redirect','classify-js','daily-spend-page','commitments-page','bucket-detail-page'] },
+    { id:'budget-ring', path:'src/components/BudgetRing.jsx', badges:['UI','SVG'],
+      what:'The large donut chart on the Dashboard. Built from two overlapping SVG <code class="inline">&lt;circle&gt;</code> elements — a full track and a colored arc — animated in on mount using two chained <code class="inline">requestAnimationFrame</code> calls (paint the empty ring first, then transition <code class="inline">stroke-dashoffset</code> to the real value) so the fill visibly sweeps in rather than appearing instantly.',
+      why:'This is the single most prominent visual on the whole app — the first thing a user sees, and its color (green/amber/red, passed in by the caller) is the fastest signal of "how am I doing this month."',
+      concept:'<b>SVG-based data visualization without a charting library</b> — using <code class="inline">stroke-dasharray</code>/<code class="inline">stroke-dashoffset</code> math (circumference × fraction) to draw a progress ring from scratch, plus the double-rAF trick for reliably triggering a CSS transition on mount (a single rAF can still land in the same paint as the initial state).',
+      connects:['dashboard-page'] },
+    { id:'color-swatches', path:'src/components/ColorSwatches.jsx', badges:['UI'],
+      what:'A row of clickable color circles; the selected one gets a ring highlight. Purely generic — takes a <code class="inline">colors</code> array and <code class="inline">value</code>/<code class="inline">onChange</code>.',
+      why:'Reused by both <code class="inline">DayTypesModal</code> and the Commitments composer for picking a day-type or commitment color, instead of two separate color-picker implementations.',
+      concept:'<b>Generic, prop-driven component design</b> — knows nothing about day types or commitments specifically, which is exactly what makes it reusable in both contexts.',
+      connects:['day-types-modal','commitments-page'] },
+    { id:'day-types-modal', path:'src/components/DayTypesModal.jsx', badges:['UI','modal'],
+      what:'Full CRUD interface for day types (used by "Log Today"): list existing types, create/edit one\'s name, color, optional sub-budget, and its list of expense fields (each with a label, a default amount, and an "optional" toggle), or delete it.',
+      why:'This is where a user builds the templates that make daily logging fast — defining once that "Uni Day" always has a Transport-to-Uni and Transport-Home field with sensible defaults, so logging it later is just confirming numbers rather than typing from scratch.',
+      concept:'<b>Nested form state management</b> — the editor manages an array of field objects inside a single form (add/remove/edit individual fields), a common but fiddly pattern for building "define a template" UIs.',
+      connects:['day-types-js','log-today-modal','color-swatches'] },
+    { id:'deep-dive-day-modal', path:'src/components/DeepDiveDayModal.jsx', badges:['UI','modal'],
+      what:'Logs or edits a single calendar date in the Daily Spend deep-dive: pick an optional day type (purely a label — never rewrites the day\'s actual typed-in items), add freehand item rows, optionally save a typed row as that day type\'s new reusable default (the ★/☆ toggle), and delete the day\'s log with a two-step confirmation if it was already sent to the real Daily Spend.',
+      why:'The two-step delete confirmation exists because of a real edge case documented in the code: deleting a sent day here does <em>not</em> retroactively delete the real <code class="inline">daily_logs</code> entry it created, so silently deleting without warning could leave a confusing mismatch between the planning tool and real spending.',
+      concept:'<b>Portals for correct modal positioning</b> — the component explicitly renders via <code class="inline">createPortal(..., document.body)</code>, with a code comment explaining that any CSS <code class="inline">transform</code> on an ancestor (even a no-op one from an entrance animation) changes the containing block for <code class="inline">position: fixed</code> descendants, which would otherwise make the modal drift with page scroll on long pages.',
+      connects:['daily-deep-dive-js','daily-deep-dive-page'] },
+    { id:'logo', path:'src/components/Logo.jsx', badges:['UI','branding'],
+      what:'The "S" brand mark — a metallic gradient tile with a serif "S" and a slow diagonal shine sweep animation (defined in <code class="inline">index.css</code> as <code class="inline">.spendly-mark</code>/<code class="inline">mark-shine</code>). Optionally renders the wordmark "Spendly" next to it.',
+      why:'Used everywhere the brand needs to appear — Navbar, Landing, Login, Signup — as one component so the mark stays pixel-identical across the app rather than being recreated per screen.',
+      concept:'<b>Small, self-contained branding components</b> — worth noting purely as an example of keeping decorative/identity elements out of page-level files.',
+      connects:['navbar','landing-page'] },
+    { id:'log-today-modal', path:'src/components/LogTodayModal.jsx', badges:['UI','modal'],
+      what:'The core "log a whole day at once" flow: step 1 picks a day type (big tap targets), step 2 shows that type\'s expense fields pre-filled with defaults, lets the user rename any field label inline, add ad-hoc extra items not in the template, and set the date/notes before saving. Can be launched straight into step 2 (skipping the picker) or pre-filled to edit an existing log.',
+      why:'This is the fastest logging path in the whole app — the button behind the prominent "＋" in the mobile bottom nav and the "Log Today" button in the desktop navbar — built around the idea that most days repeat a familiar shape (a "Uni Day" mostly costs the same things).',
+      concept:'<b>Multi-step wizard state</b> and <b>template-with-override editing</b> — pre-filling from a template but letting every value, including field labels, be freely overridden per entry without mutating the template itself.',
+      connects:['day-types-js','daily-logs-js','bucket-mismatch-warning'] },
+    { id:'mini-budget-bar', path:'src/components/MiniBudgetBar.jsx', badges:['UI'],
+      what:'A small horizontal progress bar showing "used vs. cap" for a bucket, color-shifting from the bucket\'s own color to amber past 85% to red once over. Also exports <code class="inline">resolveCap()</code>, a helper that converts a stored mini-budget into a monthly-equivalent number depending on whether the cap period is <code class="inline">\'monthly\'</code> or <code class="inline">\'daily\'</code> (multiplying a daily cap by days-in-month).',
+      why:'This is the single component every bucket screen (Dashboard cards, BucketDetail, Commitments, DailySpend) uses to show "how much room is left" — a good example of one visual idiom reused consistently rather than four separate progress-bar implementations with subtly different behavior.',
+      concept:'<b>Shared presentational logic paired with a shared calculation helper</b> — <code class="inline">resolveCap</code> is exported <em>from</em> the component file precisely because every consumer of the visual bar also needs the exact same cap-resolution math.',
+      connects:['bucket-card','bucket-detail-page','commitments-page'] },
+    { id:'month-nav', path:'src/components/MonthNav.jsx', badges:['UI'],
+      what:'Prev/next month arrow buttons plus a "Today" jump-back button that only appears when not viewing the current month.',
+      why:'Shared by Dashboard, Budget Settings, and the Groceries deep-dive so all three browse months the same way and stay visually/behaviorally in sync when a user moves between them.',
+      concept:'<b>Consistent interaction patterns across related screens</b> — small, but the kind of consistency that makes an app feel coherent rather than like several separately-built tools stitched together.',
+      connects:['dashboard-page','budget-settings-page','groceries-deep-dive-page'] },
+    { id:'navbar', path:'src/components/Navbar.jsx', badges:['UI','navigation'],
+      what:'The desktop-only (<code class="inline">hidden md:flex</code>) top navigation bar: logo, four page links, theme toggle, "Log Today" button, and sign-out. Like <code class="inline">BottomNav</code>, it preserves the <code class="inline">?month=</code> query param across the two month-aware links.',
+      why:'The desktop counterpart to <code class="inline">BottomNav</code> — together they\'re the two "shells" every protected page is wrapped in by <code class="inline">App.jsx</code>\'s <code class="inline">Protected</code> helper.',
+      concept:'<b>Responsive component pairs</b> rather than one component trying to serve both breakpoints — reinforces the same lesson as <code class="inline">BottomNav</code> from the other side (desktop vs. mobile chrome).',
+      connects:['bottom-nav','logo','theme-toggle','app-jsx'] },
+    { id:'recent-expenses', path:'src/components/RecentExpenses.jsx', badges:['UI'],
+      what:'Renders a list of the last several expense rows with a colored category icon, title, category tag, relative date, and amount.',
+      why:'A straightforward "recent activity" list component — worth including as a contrast to the more state-heavy components in this folder; it just maps data to markup.',
+      concept:'<b>Stateless list rendering</b> — no internal state at all, just props in, JSX out.',
+      connects:['categories-js'] },
+    { id:'reveal', path:'src/components/Reveal.jsx', badges:['UI','animation'],
+      what:'Wraps children in a fade-and-rise-in animation that triggers once, the first time the element scrolls into view, using the browser\'s native <code class="inline">IntersectionObserver</code> API (with a fallback that shows content immediately if <code class="inline">IntersectionObserver</code> is unavailable).',
+      why:'Used throughout Dashboard and Landing to stagger sections into view as the user scrolls, rather than everything appearing at once — a common pattern for pages with a lot of vertical content.',
+      concept:'<b>The Intersection Observer API</b> — the modern, performant way to detect "has this element scrolled into the viewport," replacing older, expensive approaches like polling <code class="inline">getBoundingClientRect()</code> on every scroll event.',
+      connects:['dashboard-page','landing-page'] },
+    { id:'setup-screen', path:'src/components/SetupScreen.jsx', badges:['UI'],
+      what:'A full-screen fallback shown instead of the normal page whenever a query fails with a "schema not set up yet" error. Displays the setup SQL in a scrollable code block with a copy-to-clipboard button and a "I\'ve run it — continue" button that retries the original load.',
+      why:'This is the safety net that makes the whole app usable by someone setting it up for the first time without ever touching the Supabase dashboard\'s SQL editor manually and hunting for the right script — it\'s surfaced automatically, in-app, exactly when needed.',
+      concept:'<b>Self-service error recovery</b> — turning an otherwise-fatal backend error into an actionable, guided next step for the end user rather than a dead-end crash screen.',
+      connects:['schema-js'] },
+    { id:'spending-trend', path:'src/components/SpendingTrend.jsx', badges:['UI','SVG','data viz'],
+      what:'A custom SVG bar chart of daily spending across the current month (Daily Spend only), with each bar colored by its dominant day type, a dashed "daily allowance" reference line (<code class="inline">remaining ÷ days left</code>), and a click-to-open tooltip showing that day\'s itemized breakdown — positioned differently on mobile (centered, with a scrim) versus desktop (anchored to the bar).',
+      why:'This is the app\'s most data-dense visualization — turning a month of daily numbers into a single glanceable shape, and the allowance line answers "am I pacing okay" at a glance without doing mental math.',
+      concept:'<b>Hand-built SVG data visualization with responsive interaction design</b> — computing bar heights, generating custom rounded-top-rect SVG paths, and handling the same interaction (click to inspect) differently across breakpoints because a hover-style desktop tooltip doesn\'t translate to touch.',
+      connects:['dashboard-page','bucket-math-js'] },
+    { id:'theme-toggle', path:'src/components/ThemeToggle.jsx', badges:['UI'],
+      what:'A round button that calls <code class="inline">useTheme().toggle()</code> and swaps between a sun icon (shown in dark mode, meaning "switch to light") and a moon icon, with a small pop/spin entrance animation on every swap.',
+      why:'The one interactive control for the theming system described in <code class="inline">ThemeContext</code>/<code class="inline">index.css</code> — appears in the desktop navbar, the mobile dashboard header, and both auth pages.',
+      concept:'<b>Thin UI wrapper over context state</b> — the component itself holds no logic beyond calling the context\'s <code class="inline">toggle()</code>, all real behavior lives in <code class="inline">ThemeContext</code>.',
+      connects:['theme-context'] },
+  ]
+},
+{
+  id:'pages', title:'Pages / Routes',
+  blurb:'Top-level screens — each one is wired to a URL in App.jsx, fetches its own data, and composes the components and lib functions above into something a user actually sees.',
+  files:[
+    { id:'landing-page', path:'src/pages/Landing.jsx', badges:['page','marketing'],
+      what:'The public marketing homepage at <code class="inline">/</code>: an animated hero with mouse-parallax floating cards (savings badge, transaction card, budget progress, a mini donut chart), a features section, a "budgets" showcase mirroring the real <code class="inline">BudgetRing</code> component, a "for students" section, and a free-forever pricing card.',
+      why:'The first thing anyone hits before signing up — its job is entirely persuasion, distinct from every other page in the app which serves an already-signed-in user.',
+      concept:'<b>Mouse-driven parallax</b> (tracking cursor position, normalizing it to -1..1, and translating layered elements by different depths) and <b>reduced-motion-friendly progressive enhancement</b> (parallax elements are <code class="inline">hidden lg:block</code>, so the effect never even loads on mobile where it wouldn\'t make sense).',
+      connects:['reveal','logo','auth-context'] },
+    { id:'dashboard-page', path:'src/pages/Dashboard.jsx', badges:['page','core'],
+      what:'The main signed-in home screen at <code class="inline">/dashboard</code>. Loads a full <code class="inline">loadBudgetSnapshot</code>, renders the hero <code class="inline">BudgetRing</code> with animated count-up figures, all four <code class="inline">BucketCard</code>s, the <code class="inline">SpendingTrend</code> chart, a live Dhaka weather fetch (<code class="inline">open-meteo.com</code>), a time-of-day greeting, and a "reset this month" destructive-action modal. Also listens for router state to auto-open <code class="inline">LogTodayModal</code> when navigated to from the "＋" button elsewhere.',
+      why:'This is the screen a user lands on after every sign-in and the hub every other page links back to — it has to answer "how am I doing this month" in the first few seconds of looking at it.',
+      concept:'<b>Orchestration / composition root</b> — a page component whose main job is coordinating many smaller pieces (hooks, lib calls, child components) rather than containing much logic of its own; also a good example of deriving multiple presentational states (<code class="inline">budgetHealth()</code>\'s green/amber/red messaging, dynamic hero font sizing) from one snapshot of data.',
+      connects:['budget-js','budget-ring','bucket-card','spending-trend','use-count-up','log-today-modal'] },
+    { id:'all-transactions-page', path:'src/pages/AllTransactions.jsx', badges:['page'],
+      what:'A unified, filterable, searchable list across all four buckets at <code class="inline">/transactions</code>. Supports date-range presets (7 days, this week, this month, etc.) or a custom range, a bucket filter, and fuzzy multi-word search (every search word must appear somewhere in the title or category, in any order).',
+      why:'Explicitly documented as "for browsing only" — it deliberately never feeds any balance calculation, staying a read-only convenience view over the same underlying data the buckets track separately.',
+      concept:'<b>Client-side filtering with derived state</b> — <code class="inline">useMemo</code> chains that recompute the filtered/grouped list only when their actual inputs change, and a simple but effective order-independent search algorithm.',
+      connects:['transactions-js','buckets-js'] },
+    { id:'bucket-detail-page', path:'src/pages/BucketDetail.jsx', badges:['page'],
+      what:'The shared detail screen for Groceries and Bills (parameterized by a <code class="inline">bucketKey</code> prop from the route) — a mini-budget card, an amount+description composer with the bucket-redirect warning system, and a chronological history grouped by date with inline edit/delete.',
+      why:'One component serves two routes (<code class="inline">/groceries</code> and <code class="inline">/bills</code>) via a small <code class="inline">CONFIG</code> object keyed by bucket, rather than two nearly-identical page files — Daily Spend and Commitments get their own dedicated pages because their needs diverge enough (day logging, recurrence) to no longer fit this shared shape.',
+      concept:'<b>Configuration-driven components</b> — deciding when two similar screens are similar <em>enough</em> to share one implementation (here, via a config object) versus when they should split into separate files (Daily Spend, Commitments) is a real, recurring architecture judgment call.',
+      connects:['bucket-redirect-chips','mini-budget-bar','expenses-js','classify-js'] },
+    { id:'budget-settings-page', path:'src/pages/BudgetSettings.jsx', badges:['page'],
+      what:'Sets a month\'s overall budget by having the user fill in four per-bucket caps (Daily, Groceries, Bills, Commitments); the overall total is never typed directly — it\'s always the live sum of the four inputs, right up until save, when it\'s written as <code class="inline">main_monthly_budget</code> with <code class="inline">budget_mode: \'per_category\'</code>.',
+      why:'This is the one screen that actually decides the number every other page measures against (<code class="inline">loadBudgetSnapshot</code>\'s <code class="inline">main</code>) — and deliberately starts every new month blank rather than pre-filling last month\'s numbers, so a budget always reflects an active decision, not stale carryover.',
+      concept:'<b>Derived totals in a form</b> — showing a "computed, not directly editable" field (the overall cap) is a small but genuinely useful pattern for preventing the sum and its parts from ever disagreeing.',
+      connects:['budgets-js','buckets-js'] },
+    { id:'commitments-page', path:'src/pages/Commitments.jsx', badges:['page'],
+      what:'Manages the Commitments bucket at <code class="inline">/commitments</code>: this month\'s reserved instances, suggested-but-not-yet-added templates, an add form (name, amount, due date, a "repeats monthly" toggle, color), and a "Recurring" management section to stop a template.',
+      why:'The one page where <code class="inline">saveTarget === \'commitments\'</code> is actually reachable (every other composer redirects a "commitments" match to a plain expense in another bucket, since only this screen has the due-date/repeat UI a commitment needs).',
+      concept:'<b>The one true home for a data shape</b> — a good illustration of how <code class="inline">useBucketRedirect</code>\'s <code class="inline">saveTarget</code> logic (see the hooks section) actually resolves differently depending on which page it\'s used from.',
+      connects:['commitments-js','bucket-redirect-chips','color-swatches'] },
+    { id:'daily-deep-dive-page', path:'src/pages/DailyDeepDive.jsx', badges:['page','planning tool'],
+      what:'A standalone Daily Spend planning calculator reached from Budget Settings, built around two sections: (1) the month day-by-day as a visual "spine" (weeks collapse by default, expandable to individual days, each with a "Send to Daily Spend" action), and (2) day types with a monthly allocator — set how many days of each type this month, watch the projected total and remaining days-to-allocate update live. Once every day is allocated, the projected total automatically syncs to the real Daily Spend cap in <code class="inline">bucket_settings</code>.',
+      why:'This is the most structurally complex single page in the app — it has to keep a hand-drawn timeline UI, a day-type allocator, and a one-way sync into the real budget system all consistent with each other, while staying strictly non-destructive toward already-logged days (see the extensive code comments around bulk-fill and the spine\'s node-positioning math).',
+      concept:'<b>Complex derived UI state</b> (the visual "spine" is built from a flat list mixing week-header rows and day rows so React\'s reconciliation never confuses a week key with a day key — a subtlety the code comments call out explicitly as a fixed bug) and a <b>one-directional sync effect</b> that only writes to the real cap once a specific "finalized" condition is met, guarded against re-firing with a ref flag.',
+      connects:['daily-deep-dive-js','deep-dive-day-modal','dates-js'] },
+    { id:'daily-spend-page', path:'src/pages/DailySpend.jsx', badges:['page','core'],
+      what:'The richest single-bucket page: a scrollable day-picker strip, a composer with quick-add presets (Breakfast, Lunch, Transport…) and a "large amount, consider Bills instead" nudge above ৳400, a day summary with a category breakdown bar, and a unified view mixing individual expenses with whole "Log Today" day-log entries — including undo-able soft-delete (a 4.2s window before the actual database delete fires).',
+      why:'Daily Spend is the highest-frequency bucket (the README calls out "today\'s choices, today\'s money"), so this page invests the most in fast entry (presets, quick date-strip navigation) and forgiveness (undo on delete) compared to the other buckets\' simpler composers.',
+      concept:'<b>Optimistic UI with a grace-period undo</b> — deleting immediately updates the UI and schedules the real delete via <code class="inline">setTimeout</code>, but keeps the item recoverable in a <code class="inline">Map</code> until that timer fires, giving "Undo" real teeth without complicating the data layer with soft-delete flags.',
+      connects:['use-bucket-redirect','log-today-modal','day-types-modal','toast-context'] },
+    { id:'groceries-deep-dive-page', path:'src/pages/GroceriesDeepDive.jsx', badges:['page','planning tool'],
+      what:'A lighter planning tool than its Daily Spend counterpart: log items with a name/price/date, see the month grouped into weeks with totals, and — only while the current month is still in progress — a projected month-end total extrapolated from the weekly average so far. A "Set as my Groceries budget" button writes that projection (or the final total, once the month is over) into <code class="inline">bucket_settings</code>, but only on explicit tap, never automatically.',
+      why:'The code comments explain the "manual, never automatic" budget-sync rule directly: unlike Daily Spend\'s deep dive (which has a clean "fully allocated" trigger), groceries has no such natural completion signal, so auto-syncing on every purchase would make the budget drift with each item logged instead of staying a stable target.',
+      concept:'<b>Recognizing when automation is the wrong choice</b> — a deliberate design decision to require an explicit user action specifically because the alternative (silent auto-sync) would produce a worse, less-trustworthy result; a good counterexample to the Daily Spend deep-dive\'s automatic sync in the same codebase.',
+      connects:['grocery-deep-dive-js','month-nav'] },
+    { id:'savings-page', path:'src/pages/Savings.jsx', badges:['page'],
+      what:'A simple standalone ledger at <code class="inline">/savings</code>: add an entry (source label, amount, optional note), edit any entry inline within its list row, delete, and see a running total.',
+      why:'Intentionally the simplest full page in the app — a useful baseline for seeing what a page looks like once you strip away bucket math, redirect logic, and deep-dive planning tools.',
+      concept:'<b>Minimal viable CRUD screen</b> — composer + list + inline edit + delete, the smallest complete pattern most data-entry apps are built from.',
+      connects:['savings-js'] },
+  ]
+},
+{
+  id:'assets', title:'Static Assets',
+  blurb:'Files served as-is rather than processed by JavaScript — icons, images, and boilerplate left over from the project template.',
+  files:[
+    { id:'favicon-svg', path:'public/favicon.svg', badges:['asset'],
+      what:'The browser-tab icon, referenced directly in <code class="inline">index.html</code>\'s <code class="inline">&lt;link rel="icon"&gt;</code>.',
+      why:'Anything in <code class="inline">public/</code> is served at the site root unprocessed — no bundling, no hashing — which is exactly right for a favicon a browser expects to find at a predictable, stable URL.',
+      concept:'<b>The <code class="inline">public/</code> vs <code class="inline">src/</code> distinction in Vite</b> — <code class="inline">src/</code> assets get imported, hashed, and bundled by build tooling; <code class="inline">public/</code> assets are copied verbatim, used for things that need a fixed path or are referenced outside JS (like this <code class="inline">&lt;link&gt;</code> tag).',
+      connects:['index-html'] },
+    { id:'icons-svg', path:'public/icons.svg', badges:['asset','unused'],
+      what:'An SVG file in the public assets folder.',
+      why:'Not referenced anywhere in the current <code class="inline">src/</code> code — every icon actually rendered in the app is hand-drawn inline SVG inside components (see <code class="inline">BottomNav</code>, <code class="inline">ThemeToggle</code>), so this file appears to be an unused leftover.',
+      concept:'N/A — another small lesson in reading real codebases: not everything present is in active use.',
+      connects:[] },
+    { id:'hero-png', path:'src/assets/hero.png', badges:['asset','unused'] ,
+      what:'An image file in <code class="inline">src/assets/</code>.',
+      why:'Not imported by any component — the Landing page\'s hero visuals are all built from live JSX/CSS (the floating cards, donut chart, etc.) rather than a static hero image, making this file currently unused.',
+      concept:'N/A.',
+      connects:['landing-page'] },
+    { id:'react-svg', path:'src/assets/react.svg', badges:['asset','unused','boilerplate'],
+      what:'The default React logo asset that ships with Vite\'s <code class="inline">create-vite</code> React template.',
+      why:'Not referenced anywhere in the app\'s actual code — a template leftover.',
+      concept:'<b>Recognizing scaffold/boilerplate residue</b> — every project bootstrapped from a starter template tends to accumulate a few of these; noticing them is part of orienting in an unfamiliar codebase.',
+      connects:[] },
+    { id:'vite-svg', path:'src/assets/vite.svg', badges:['asset','unused','boilerplate'],
+      what:'The default Vite logo asset, also from the starter template.',
+      why:'Same as <code class="inline">react.svg</code> — unused in the current app.',
+      concept:'N/A.',
+      connects:[] },
+  ]
+},
+{
+  id:'docs', title:'Docs',
+  blurb:'The one plain-language explanation of the project meant for a human reader rather than a build tool.',
+  files:[
+    { id:'readme-md', path:'README.md', badges:['docs'],
+      what:'Explains the product in plain terms: BDT-native, no bank linking, built for a BRAC University student, with a description of each of the four buckets and their intent, the tech stack, and setup steps (install, <code class="inline">.env.local</code>, run <code class="inline">SUPABASE_SETUP.sql</code>, <code class="inline">npm run dev</code>).',
+      why:'The fastest way for a new contributor (or future you) to understand <em>why</em> the app is shaped the way it is before reading any code — several of the design decisions found throughout this guide (the bucket-mismatch warnings, the Bangladesh-specific weekend, the BDT currency formatting) trace directly back to the one sentence "built for a BRAC University student" here.',
+      concept:'<b>Documentation as the entry point to a codebase</b> — a good README front-loads the "why," so the "how" (the actual code) is easier to read with the right context already in mind.',
+      connects:['buckets-js','format-js','dates-js'] },
+  ]
+},
+];
+
+/* ══════════════════════════════════════════════════════════════════
+   RENDER LOGIC
+   ══════════════════════════════════════════════════════════════════ */
+const FILE_INDEX = {};
+CATEGORIES.forEach(cat => cat.files.forEach(f => { FILE_INDEX[f.id] = { ...f, catId: cat.id, catTitle: cat.title }; }));
+const FLAT_ORDER = CATEGORIES.flatMap(cat => cat.files.map(f => f.id));
+
+let currentId = null;
+let openCats = new Set([CATEGORIES[0].id]);
+
+function iconFor(){ return ''; }
+
+function renderSidebar(filterText){
+  const nav = document.getElementById('navScroll');
+  nav.innerHTML = '';
+
+  const overviewBtn = document.createElement('button');
+  overviewBtn.className = 'nav-overview-btn' + (currentId === null ? ' active' : '');
+  overviewBtn.textContent = '◆ Overview & guided tour';
+  overviewBtn.onclick = () => { currentId = null; render(); };
+  nav.appendChild(overviewBtn);
+
+  const q = (filterText || '').trim().toLowerCase();
+
+  CATEGORIES.forEach((cat, ci) => {
+    const files = q
+      ? cat.files.filter(f => f.path.toLowerCase().includes(q) || cat.title.toLowerCase().includes(q))
+      : cat.files;
+    if (q && files.length === 0) return;
+
+    const isOpen = q ? true : openCats.has(cat.id);
+    const wrap = document.createElement('div');
+    wrap.className = 'cat' + (isOpen ? ' open' : '');
+
+    const head = document.createElement('button');
+    head.className = 'cat-head';
+    head.innerHTML = `<span class="cat-num">${ci+1}</span><span>${cat.title}</span><span class="cat-chevron">›</span>`;
+    head.onclick = () => {
+      if (openCats.has(cat.id)) openCats.delete(cat.id); else openCats.add(cat.id);
+      renderSidebar(document.getElementById('search').value);
+    };
+    wrap.appendChild(head);
+
+    const fileList = document.createElement('div');
+    fileList.className = 'cat-files';
+    files.forEach(f => {
+      const btn = document.createElement('button');
+      btn.className = 'file-btn' + (currentId === f.id ? ' active' : '');
+      const base = f.path.split('/').pop();
+      btn.innerHTML = `<span class="file-dot"></span><span>${base}</span>`;
+      btn.title = f.path;
+      btn.onclick = () => { currentId = f.id; render(); };
+      fileList.appendChild(btn);
+    });
+    wrap.appendChild(fileList);
+    nav.appendChild(wrap);
+  });
+}
+
+function chipFor(text){
+  const known = FILE_INDEX[text];
+  if (known) {
+    const base = known.path.split('/').pop();
+    return `<button class="chip" data-jump="${text}">${base}</button>`;
+  }
+  return `<span class="chip plain">${text}</span>`;
+}
+
+function renderOverview(){
+  const main = document.getElementById('main');
+  const totalFiles = FLAT_ORDER.length;
+  main.innerHTML = `
+    <div class="ov-hero">
+      <h1>Spendly — a guided tour of the codebase</h1>
+      <p>Spendly is a React 19 + Vite + Tailwind CSS v4 budget tracker for BRAC University students, backed by Supabase (Postgres + auth). Every expense lands in one of four <b>buckets</b> — Daily Spend, Groceries, Bills, Commitments — each with its own history and mini-budget, but all four net against one main monthly budget. This guide walks through every file that makes that work, grouped the way the codebase itself is organized. Click any file on the left, or a category below, to start.</p>
+    </div>
+
+    <div class="ov-grid">
+      <div class="ov-stat"><div class="num">${totalFiles}</div><div class="lbl">files documented</div></div>
+      <div class="ov-stat"><div class="num">${CATEGORIES.length}</div><div class="lbl">categories</div></div>
+      <div class="ov-stat"><div class="num">4</div><div class="lbl">expense buckets</div></div>
+      <div class="ov-stat"><div class="num">17</div><div class="lbl">database tables (SUPABASE_SETUP.sql)</div></div>
+    </div>
+
+    <div class="ov-section">
+      <h2><span class="n">1</span>The four buckets — the core idea</h2>
+      <p style="color:var(--n500); font-size:14px; line-height:1.7; margin:0 0 14px;">Every screen that logs an expense funnels into exactly one of these. A single main monthly budget (set in <b>Budget Settings</b>) is what all four net against — bucket totals always sum exactly to the overall "spent" figure, enforced by <code class="inline">lib/bucketMath.js</code>.</p>
+      <div class="bucket-row">
+        <span class="bucket-pill" style="border-color:#22c55e66;color:#22c55e;">☕ Daily Spend</span>
+        <span class="bucket-pill" style="border-color:#3b82f666;color:#3b82f6;">🛒 Groceries</span>
+        <span class="bucket-pill" style="border-color:#f59e0b66;color:#f59e0b;">🧾 Bills</span>
+        <span class="bucket-pill" style="border-color:#a855f766;color:#a855f7;">🏦 Commitments</span>
+      </div>
+    </div>
+
+    <div class="ov-section">
+      <h2><span class="n">2</span>How a request actually flows</h2>
+      <div class="flow-box">
+<b>index.html</b> loads <b>main.jsx</b>
+  <span class="flow-arrow">→</span> mounts <b>App.jsx</b> inside ThemeProvider + ToastProvider
+  <span class="flow-arrow">→</span> App.jsx matches the URL to a &lt;Route&gt;
+  <span class="flow-arrow">→</span> ProtectedRoute checks AuthContext's session
+  <span class="flow-arrow">→</span> the matched <b>page</b> (e.g. Dashboard.jsx) calls a <b>lib/</b> function
+  <span class="flow-arrow">→</span> that function queries <b>Supabase</b> (RLS-scoped to auth.uid())
+  <span class="flow-arrow">→</span> the page composes <b>components/</b> around the returned data
+      </div>
+    </div>
+
+    <div class="ov-section">
+      <h2><span class="n">3</span>Categories — click to jump in</h2>
+      <div class="ov-cat-list" id="ovCatList"></div>
+    </div>
+
+    <div class="ov-section">
+      <h2><span class="n">4</span>How to read this guide</h2>
+      <p style="color:var(--n500); font-size:14px; line-height:1.7;">Every file page has four sections: <b style="color:var(--blue)">What it does</b> (its job in plain language), <b style="color:var(--amber)">Why it matters</b> (what breaks or gets worse without it), <b style="color:var(--purple)">CS concept</b> (the transferable idea it demonstrates — useful for actually defending decisions in this project, not just describing them), and <b style="color:var(--green)">Connects to</b> (clickable links to the other files it depends on or is used by). Use the search box in the sidebar to jump straight to a filename.</p>
+    </div>
+  `;
+
+  const list = document.getElementById('ovCatList');
+  CATEGORIES.forEach((cat, i) => {
+    const card = document.createElement('div');
+    card.className = 'ov-cat-card';
+    card.innerHTML = `<div class="t">${i+1}. ${cat.title}</div><div class="d">${cat.blurb}</div><div class="c">${cat.files.length} file${cat.files.length===1?'':'s'} →</div>`;
+    card.onclick = () => {
+      openCats.add(cat.id);
+      currentId = cat.files[0].id;
+      render();
+    };
+    list.appendChild(card);
+  });
+}
+
+function renderFile(id){
+  const f = FILE_INDEX[id];
+  const main = document.getElementById('main');
+  if (!f) { renderOverview(); return; }
+
+  const dir = f.path.includes('/') ? f.path.slice(0, f.path.lastIndexOf('/') + 1) : '';
+  const base = f.path.includes('/') ? f.path.slice(f.path.lastIndexOf('/') + 1) : f.path;
+
+  const idx = FLAT_ORDER.indexOf(id);
+  const prevId = idx > 0 ? FLAT_ORDER[idx - 1] : null;
+  const nextId = idx < FLAT_ORDER.length - 1 ? FLAT_ORDER[idx + 1] : null;
+
+  main.innerHTML = `
+    <div class="crumbs">${f.catTitle} <span style="margin:0 6px;">/</span> <b>${base}</b></div>
+    <div class="file-header">
+      <div class="file-path"><span class="dir">${dir}</span>${base}</div>
+      <div class="badges">${f.badges.map(b => `<span class="badge">${b}</span>`).join('')}</div>
+    </div>
+
+    <div class="card what">
+      <h3><span class="icon-dot"></span>What it does</h3>
+      <p>${f.what}</p>
+    </div>
+    <div class="card why">
+      <h3><span class="icon-dot"></span>Why it matters</h3>
+      <p>${f.why}</p>
+    </div>
+    <div class="card concept">
+      <h3><span class="icon-dot"></span>CS concept it demonstrates</h3>
+      <p>${f.concept}</p>
+    </div>
+    <div class="card connects">
+      <h3><span class="icon-dot"></span>Connects to</h3>
+      ${f.connects && f.connects.length
+        ? `<div class="chip-row">${f.connects.map(chipFor).join('')}</div>`
+        : `<p style="color:var(--n400); font-style:italic;">No direct file dependencies — a leaf file in the dependency graph.</p>`}
+    </div>
+
+    <div class="footer-nav">
+      ${prevId ? `<button data-jump="${prevId}"><span class="lbl">← Previous</span>${FILE_INDEX[prevId].path.split('/').pop()}</button>` : '<span></span>'}
+      ${nextId ? `<button class="next" data-jump="${nextId}"><span class="lbl">Next →</span>${FILE_INDEX[nextId].path.split('/').pop()}</button>` : '<span></span>'}
+    </div>
+  `;
+
+  main.querySelectorAll('[data-jump]').forEach(el => {
+    el.addEventListener('click', () => { currentId = el.getAttribute('data-jump'); render(); });
+  });
+
+  window.scrollTo(0,0);
+  main.scrollTop = 0;
+}
+
+function render(){
+  renderSidebar(document.getElementById('search').value);
+  if (currentId === null) renderOverview();
+  else renderFile(currentId);
+  if (location.hash !== '#' + (currentId || '')) {
+    history.replaceState(null, '', currentId ? '#' + currentId : '#');
+  }
+}
+
+document.getElementById('search').addEventListener('input', (e) => {
+  renderSidebar(e.target.value);
+});
+
+window.addEventListener('hashchange', () => {
+  const h = location.hash.replace('#','');
+  currentId = h && FILE_INDEX[h] ? h : null;
+  render();
+});
+
+// initial load
+(function init(){
+  const h = location.hash.replace('#','');
+  currentId = h && FILE_INDEX[h] ? h : null;
+  if (currentId) {
+    openCats.add(FILE_INDEX[currentId].catId);
+  }
+  render();
+})();
+</script>
+</body>
+</html>

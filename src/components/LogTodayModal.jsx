@@ -117,9 +117,15 @@ export default function LogTodayModal({ userId, dayTypes, initialType = null, in
                 {dayTypes.map(dt => (
                   <button key={dt.id} onClick={() => pick(dt)}
                     className="tile-press flex items-center gap-3 p-4 rounded-2xl text-left"
-                    style={{ background: 'var(--surface-2)', border: `1.5px solid var(--border-soft)`, borderLeft: `3px solid ${dt.color}` }}>
+                    style={{ background: 'var(--surface-2)', border: `1.5px solid var(--border-soft)` }}
+                    onMouseOver={e => { e.currentTarget.style.borderColor = 'var(--border-3)' }}
+                    onMouseOut={e => { e.currentTarget.style.borderColor = 'var(--border-soft)' }}>
                     <span className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0"
-                      style={{ background: `${dt.color}22`, fontSize: 20 }}>{dayTypeIcon(dt)}</span>
+                      style={{
+                        background: `linear-gradient(135deg, ${dt.color}29, ${dt.color}0d)`,
+                        boxShadow: `inset 0 0 0 1px ${dt.color}40`,
+                        fontSize: 20,
+                      }}>{dayTypeIcon(dt)}</span>
                     <div className="min-w-0">
                       <p className="text-sm font-bold" style={{ color: 'var(--n900)' }}>{dt.name}</p>
                       <p className="text-xs truncate" style={{ color: 'var(--n350)' }}>

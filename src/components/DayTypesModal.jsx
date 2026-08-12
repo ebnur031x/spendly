@@ -50,8 +50,11 @@ export default function DayTypesModal({ userId, dayTypes, onClose, onChanged }) 
               <ul className="flex flex-col gap-2 mb-4">
                 {items.map(dt => (
                   <li key={dt.id} className="flex items-center gap-3 px-3.5 py-3 rounded-xl"
-                    style={{ background: 'var(--surface-2)', border: '1px solid var(--border-soft)', borderLeft: `3px solid ${dt.color}` }}>
-                    <span style={{ width: 10, height: 10, borderRadius: '50%', background: dt.color, flexShrink: 0 }} />
+                    style={{ background: 'var(--surface-2)', border: '1px solid var(--border-soft)' }}>
+                    <span style={{
+                      width: 10, height: 10, borderRadius: '50%', background: dt.color,
+                      boxShadow: `0 0 0 3px ${dt.color}22`, flexShrink: 0,
+                    }} />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold truncate" style={{ color: 'var(--n900)' }}>{dt.name}</p>
                       <p className="text-xs" style={{ color: 'var(--n350)' }}>
@@ -59,7 +62,13 @@ export default function DayTypesModal({ userId, dayTypes, onClose, onChanged }) 
                       </p>
                     </div>
                     <button onClick={() => setEditing(dt)} className="btn-soft text-xs px-3 py-1.5 rounded-full font-semibold flex-shrink-0">Edit</button>
-                    <button onClick={() => remove(dt.id)} aria-label={`Delete ${dt.name}`} className="btn-delete" title="Delete">×</button>
+                    <button onClick={() => remove(dt.id)} aria-label={`Delete ${dt.name}`} className="btn-delete" title="Delete">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M3 6h18" />
+                        <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                      </svg>
+                    </button>
                   </li>
                 ))}
                 {items.length === 0 && (

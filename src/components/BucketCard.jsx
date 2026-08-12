@@ -10,12 +10,16 @@ export default function BucketCard({ view, used = 0, cap = null, entries = [], o
   return (
     <button
       onClick={onOpen}
-      className="card tile-press text-left p-5 flex flex-col w-full"
-      style={{ borderLeft: `3px solid ${color}`, minHeight: 168 }}
+      className="card tile-press lift text-left p-5 flex flex-col w-full"
+      style={{ minHeight: 168 }}
     >
       <div className="flex items-start gap-3 mb-3">
         <span className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-          style={{ background: `${color}22`, fontSize: 19 }}>{icon}</span>
+          style={{
+            background: `linear-gradient(135deg, ${color}29, ${color}0d)`,
+            boxShadow: `inset 0 0 0 1px ${color}40`,
+            fontSize: 19,
+          }}>{icon}</span>
         <div className="min-w-0 flex-1">
           <p className="text-sm font-bold leading-tight" style={{ color: 'var(--n900)' }}>{name}</p>
           <p className="text-xs mt-0.5 leading-snug" style={{ color: 'var(--n350)' }}>{tagline}</p>

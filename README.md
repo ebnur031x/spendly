@@ -1,6 +1,6 @@
 # Spendly
 
-Budget & expense tracker built for a BRAC University student — ৳ (BDT) native, no bank linking required.
+Budget & expense tracker.
 
 **Live:** https://spendly-blond-two.vercel.app
 

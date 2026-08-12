@@ -101,7 +101,7 @@ export default function Dashboard() {
 
   function handleLogged() {
     setLog(null)
-    setToast('Day logged 🎉')
+    setToast('Day logged')
     refresh()
   }
 
@@ -198,7 +198,7 @@ export default function Dashboard() {
               <>
                 Good {greet}
                 {weather != null && (
-                  <span style={{ marginLeft: 6, opacity: 0.85 }}>· {wxIcon(weather.code)} {Math.round(weather.temp)}°C</span>
+                  <span style={{ marginLeft: 6, opacity: 0.85 }}>· {Math.round(weather.temp)}°C</span>
                 )}
               </>
             ) : (
@@ -269,7 +269,7 @@ export default function Dashboard() {
               : <StatPill value={String(dpm)} label={`day${dpm === 1 ? '' : 's'} total`} />}
           </div>
 
-          <p className="text-center mt-4" style={{ fontSize: '0.78rem', color: 'var(--n400)' }}>{health.emoji} {health.message}</p>
+          <p className="text-center mt-4" style={{ fontSize: '0.78rem', color: 'var(--n400)' }}>{health.message}</p>
 
           <Link to={`/budget-settings?month=${month}`}
             className="btn-soft flex items-center justify-center gap-2 rounded-xl font-semibold mx-auto mt-5"
@@ -351,28 +351,16 @@ export default function Dashboard() {
   )
 }
 
-function wxIcon(code) {
-  if (code === 0) return '☀️'
-  if (code <= 2) return '🌤️'
-  if (code === 3) return '☁️'
-  if (code <= 48) return '🌫️'
-  if (code <= 55) return '🌦️'
-  if (code <= 67) return '🌧️'
-  if (code <= 77) return '❄️'
-  if (code <= 82) return '🌧️'
-  return '⛈️'
-}
-
 function budgetHealth({ main, remaining, overBudget, daysLeft, isCurrentMonth }) {
-  if (overBudget) return { level: 'over', color: '#ef4444', emoji: '🔴', message: `Over budget by ${money0(Math.abs(remaining))}` }
+  if (overBudget) return { level: 'over', color: '#ef4444', message: `Over budget by ${money0(Math.abs(remaining))}` }
   // "Per day" pacing only makes sense while the month is actually live —
   // for a past or future month, just state what's left.
-  if (!isCurrentMonth) return { level: 'good', color: '#22c55e', emoji: '🟢', message: `${money0(remaining)} left unspent` }
+  if (!isCurrentMonth) return { level: 'good', color: '#22c55e', message: `${money0(remaining)} left unspent` }
   const perDay = money0(Math.abs(remaining) / Math.max(1, daysLeft))
   const remFrac = main > 0 ? remaining / main : 0
-  if (remFrac > 0.5) return { level: 'good', color: '#22c55e', emoji: '🟢', message: `On track — ${perDay} per day available` }
-  if (remFrac >= 0.2) return { level: 'watch', color: '#f59e0b', emoji: '🟡', message: `Watch your spending — ${perDay} per day left` }
-  return { level: 'low', color: '#ef4444', emoji: '🔴', message: `Budget running low — ${perDay} per day left` }
+  if (remFrac > 0.5) return { level: 'good', color: '#22c55e', message: `On track — ${perDay} per day available` }
+  if (remFrac >= 0.2) return { level: 'watch', color: '#f59e0b', message: `Watch your spending — ${perDay} per day left` }
+  return { level: 'low', color: '#ef4444', message: `Budget running low — ${perDay} per day left` }
 }
 
 function heroFontSize(str) {

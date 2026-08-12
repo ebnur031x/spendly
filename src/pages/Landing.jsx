@@ -12,17 +12,10 @@ const NAV_ITEMS = [
   { label: 'Pricing', href: '#pricing' },
 ]
 
-// Wraps a floating card: outer layer follows the cursor (parallax),
-// inner layer keeps the idle float animation — the two transforms compose.
-function FloatingCard({ pos, float, depth, mouse, children }) {
+// A floating card with a slow idle bob — purely decorative, no motion tracking.
+function FloatingCard({ pos, float, children }) {
   return (
-    <div
-      className="parallax-layer hidden lg:block"
-      style={{
-        position: 'absolute', zIndex: 3, ...pos,
-        transform: `translate(${-mouse.nx * depth}px, ${-mouse.ny * depth}px)`,
-      }}
-    >
+    <div className="hidden lg:block" style={{ position: 'absolute', zIndex: 3, ...pos }}>
       <div className="float-card" style={floatStyle(...float)}>
         {children}
       </div>
@@ -196,12 +189,12 @@ function UnderBudgetBadge() {
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
         fontSize: 13, color: '#fff', flexShrink: 0, fontWeight: 700,
       }}>✓</span>
-      Under budget! 🎉
+      Under budget!
     </div>
   )
 }
 
-function FeatureCard({ emoji, title, desc, delay }) {
+function FeatureCard({ step, title, desc, delay }) {
   return (
     <Reveal delay={delay}>
       <div className="lift" style={{
@@ -209,9 +202,9 @@ function FeatureCard({ emoji, title, desc, delay }) {
         padding: 28, height: '100%',
       }}>
         <div style={{
-          width: 44, height: 44, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 20, background: 'rgba(124,58,237,0.1)', marginBottom: 18,
-        }}>{emoji}</div>
+          width: 40, height: 40, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 15, fontWeight: 800, color: 'var(--accent)', background: 'rgba(124,58,237,0.1)', marginBottom: 18,
+        }}>{step}</div>
         <h3 style={{ fontSize: 17, fontWeight: 700, color: 'var(--n900)', letterSpacing: '-0.01em', margin: '0 0 8px' }}>{title}</h3>
         <p style={{ fontSize: 14.5, color: 'var(--n400)', lineHeight: 1.6, margin: 0 }}>{desc}</p>
       </div>
@@ -257,26 +250,6 @@ function BudgetShowcase() {
   )
 }
 
-function Star({ color = '#7c3aed', size = 16 }) {
-  return (
-    <span style={{ color, fontSize: size, lineHeight: 1, display: 'block' }}>✦</span>
-  )
-}
-
-function Sparkle({ pos, color, size, depth, mouse }) {
-  return (
-    <div
-      className="parallax-layer hidden lg:block"
-      style={{
-        position: 'absolute', zIndex: 2, ...pos,
-        transform: `translate(${-mouse.nx * depth}px, ${-mouse.ny * depth}px)`,
-      }}
-    >
-      <Star color={color} size={size} />
-    </div>
-  )
-}
-
 // CSS custom-property helpers for float-card animation (defined in index.css)
 function floatStyle(rotate, duration, delay) {
   return {
@@ -290,7 +263,6 @@ export default function Landing() {
   const { user, loading } = useAuth()
   const navigate = useNavigate()
   const [fading, setFading] = useState(false)
-  const [mouse, setMouse] = useState({ nx: 0, ny: 0, px: -9999, py: -9999, active: false })
 
   if (loading) return null
   if (user) return <Navigate to="/dashboard" replace />
@@ -299,21 +271,6 @@ export default function Landing() {
     e.preventDefault()
     setFading(true)
     setTimeout(() => navigate('/signup'), 340)
-  }
-
-  function handleMouseMove(e) {
-    const rect = e.currentTarget.getBoundingClientRect()
-    const px = e.clientX - rect.left
-    const py = e.clientY - rect.top
-    setMouse({
-      nx: (px / rect.width - 0.5) * 2,   // -1 .. 1
-      ny: (py / rect.height - 0.5) * 2,
-      px, py, active: true,
-    })
-  }
-
-  function handleMouseLeave() {
-    setMouse(m => ({ ...m, nx: 0, ny: 0, active: false }))
   }
 
   const navLink = {
@@ -371,8 +328,6 @@ export default function Landing() {
 
       {/* ── Hero ── */}
       <section
-        onMouseMove={handleMouseMove}
-        onMouseLeave={handleMouseLeave}
         style={{
           position: 'relative',
           minHeight: 'calc(100vh - 64px)',
@@ -386,41 +341,16 @@ export default function Landing() {
         {/* Subtle radial glow */}
         <div style={{
           position: 'absolute', inset: 0, pointerEvents: 'none',
-          background: [
-            'radial-gradient(ellipse 60% 40% at 50% 0%, rgba(124,58,237,0.07) 0%, transparent 70%)',
-            'radial-gradient(ellipse 40% 50% at 100% 60%, rgba(59,130,246,0.05) 0%, transparent 70%)',
-            'radial-gradient(ellipse 40% 50% at 0% 70%, rgba(34,197,94,0.04) 0%, transparent 70%)',
-          ].join(', '),
+          background: 'radial-gradient(ellipse 60% 40% at 50% 0%, rgba(124,58,237,0.07) 0%, transparent 70%)',
         }} />
 
-        {/* Cursor-following glow */}
-        <div
-          className="hidden lg:block"
-          style={{
-            position: 'absolute', top: 0, left: 0,
-            width: 460, height: 460, borderRadius: '50%',
-            marginLeft: -230, marginTop: -230,
-            background: 'radial-gradient(circle, rgba(124,58,237,0.10) 0%, rgba(59,130,246,0.05) 40%, transparent 70%)',
-            transform: `translate(${mouse.px}px, ${mouse.py}px)`,
-            transition: 'transform 0.18s ease-out, opacity 0.4s ease',
-            opacity: mouse.active ? 1 : 0,
-            pointerEvents: 'none', zIndex: 1,
-          }}
-        />
-
-        {/* ── Floating cards (parallax + idle float) ── */}
-        <FloatingCard pos={{ top: '13%', left: '9%' }}  float={['-2deg', '4.2s', '0s']}    depth={14} mouse={mouse}><SavingsBadge /></FloatingCard>
-        <FloatingCard pos={{ top: '48%', left: '4%' }}  float={['-1.5deg', '5s', '-1.5s']} depth={22} mouse={mouse}><TransactionCard /></FloatingCard>
-        <FloatingCard pos={{ top: '72%', left: '12%' }} float={['1.5deg', '4.5s', '-2.5s']} depth={18} mouse={mouse}><BudgetProgress /></FloatingCard>
-        <FloatingCard pos={{ top: '10%', right: '5%' }}  float={['2deg', '3.8s', '-0.8s']}  depth={20} mouse={mouse}><DonutChart /></FloatingCard>
-        <FloatingCard pos={{ top: '53%', right: '6%' }}  float={['-1deg', '5.2s', '-1.8s']} depth={16} mouse={mouse}><FoodChip /></FloatingCard>
-        <FloatingCard pos={{ top: '71%', right: '6%' }}  float={['1.2deg', '4.8s', '-3.2s']} depth={24} mouse={mouse}><UnderBudgetBadge /></FloatingCard>
-
-        {/* Sparkle stars — react more strongly to feel closer */}
-        <Sparkle pos={{ top: '19%', left: '47%' }} color="#7c3aed" size={18} depth={34} mouse={mouse} />
-        <Sparkle pos={{ top: '57%', left: '60%' }} color="#f59e0b" size={13} depth={40} mouse={mouse} />
-        <Sparkle pos={{ top: '38%', right: '22%' }} color="#22c55e" size={11} depth={30} mouse={mouse} />
-        <Sparkle pos={{ top: '63%', left: '62%' }} color="#3b82f6" size={10} depth={44} mouse={mouse} />
+        {/* ── Floating cards (idle float) ── */}
+        <FloatingCard pos={{ top: '13%', left: '9%' }}  float={['-2deg', '4.2s', '0s']}><SavingsBadge /></FloatingCard>
+        <FloatingCard pos={{ top: '48%', left: '4%' }}  float={['-1.5deg', '5s', '-1.5s']}><TransactionCard /></FloatingCard>
+        <FloatingCard pos={{ top: '72%', left: '12%' }} float={['1.5deg', '4.5s', '-2.5s']}><BudgetProgress /></FloatingCard>
+        <FloatingCard pos={{ top: '10%', right: '5%' }}  float={['2deg', '3.8s', '-0.8s']}><DonutChart /></FloatingCard>
+        <FloatingCard pos={{ top: '53%', right: '6%' }}  float={['-1deg', '5.2s', '-1.8s']}><FoodChip /></FloatingCard>
+        <FloatingCard pos={{ top: '71%', right: '6%' }}  float={['1.2deg', '4.8s', '-3.2s']}><UnderBudgetBadge /></FloatingCard>
 
         {/* ── Center content ── */}
         <div style={{ textAlign: 'center', position: 'relative', zIndex: 4, maxWidth: 580 }}>
@@ -504,9 +434,9 @@ export default function Landing() {
         </Reveal>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24 }}>
-          <FeatureCard delay={0} emoji="⚡" title="Log a day in seconds" desc="Tap a preset — lunch, rickshaw, tea — or fire off a whole 'Uni Day' template in one shot. No forms, no friction." />
-          <FeatureCard delay={90} emoji="🧾" title="A statement that means something" desc="Every week, see what you spent vs. last week, weekday vs. weekend, and exactly where every taka went." />
-          <FeatureCard delay={180} emoji="🎯" title="A budget that talks back" desc="Set a monthly number once. Spendly tracks it live — daily allowance, days left, and a nudge before you're over." />
+          <FeatureCard delay={0} step="01" title="Log a day in seconds" desc="Tap a preset — lunch, rickshaw, tea — or fire off a whole 'Uni Day' template in one shot. No forms, no friction." />
+          <FeatureCard delay={90} step="02" title="A statement that means something" desc="Every week, see what you spent vs. last week, weekday vs. weekend, and exactly where every taka went." />
+          <FeatureCard delay={180} step="03" title="A budget that talks back" desc="Set a monthly number once. Spendly tracks it live — daily allowance, days left, and a nudge before you're over." />
         </div>
       </section>
 
@@ -521,7 +451,7 @@ export default function Landing() {
             }}
           >
             <div>
-              <span style={{ display: 'inline-block', fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#22c55e', background: 'rgba(34,197,94,0.1)', padding: '6px 14px', borderRadius: 999, marginBottom: 18 }}>
+              <span style={{ display: 'inline-block', fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#22c55e', marginBottom: 18 }}>
                 Budgets
               </span>
               <h2 style={{ fontSize: 'clamp(28px, 4vw, 38px)', fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--n900)', margin: '0 0 14px' }}>
@@ -551,7 +481,7 @@ export default function Landing() {
           <div style={{
             maxWidth: 1120, margin: '0 auto', borderRadius: 28, padding: 'clamp(40px, 6vw, 64px)',
             textAlign: 'center', position: 'relative', overflow: 'hidden',
-            background: 'linear-gradient(160deg, rgba(124,58,237,0.08), rgba(59,130,246,0.05))',
+            background: 'var(--surface)',
             border: '1px solid var(--border)',
           }}>
             <span style={{ display: 'inline-block', fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 18 }}>
@@ -565,12 +495,12 @@ export default function Landing() {
             </p>
             <div style={{ display: 'flex', gap: 32, justifyContent: 'center', flexWrap: 'wrap' }}>
               {[
-                { emoji: '৳', label: 'BDT native' },
-                { emoji: '🎓', label: 'Free for students' },
-                { emoji: '🔒', label: 'Your data, your account' },
+                { mark: '৳', label: 'BDT native' },
+                { mark: '✓', label: 'Free for students' },
+                { mark: '✓', label: 'Your data, your account' },
               ].map(s => (
                 <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14.5, fontWeight: 600, color: 'var(--n700)' }}>
-                  <span style={{ fontSize: 20 }}>{s.emoji}</span>{s.label}
+                  <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--accent)' }}>{s.mark}</span>{s.label}
                 </div>
               ))}
             </div>

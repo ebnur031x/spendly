@@ -33,11 +33,7 @@ export function AuthDecor() {
       {/* ambient color wash */}
       <div style={{
         position: 'absolute', inset: 0,
-        background: [
-          'radial-gradient(ellipse 45% 40% at 18% 22%, rgba(124,58,237,0.06) 0%, transparent 70%)',
-          'radial-gradient(ellipse 45% 40% at 82% 78%, rgba(34,197,94,0.05) 0%, transparent 70%)',
-          'radial-gradient(ellipse 40% 40% at 85% 20%, rgba(59,130,246,0.045) 0%, transparent 70%)',
-        ].join(', '),
+        background: 'radial-gradient(ellipse 45% 40% at 18% 22%, rgba(124,58,237,0.06) 0%, transparent 70%)',
       }} />
 
       <div className="float-card" style={{ position: 'absolute', top: '16%', left: '14%', ...floatStyle('-3deg', '4.6s', '0s') }}>
@@ -47,7 +43,7 @@ export function AuthDecor() {
       </div>
 
       <div className="float-card" style={{ position: 'absolute', top: '30%', right: '12%', ...floatStyle('2.5deg', '5.2s', '-1.4s') }}>
-        <Chip>🍛 Food · ৳4,755</Chip>
+        <Chip>Food · ৳4,755</Chip>
       </div>
 
       <div className="float-card" style={{ position: 'absolute', bottom: '20%', left: '11%', ...floatStyle('2deg', '4.9s', '-2.2s') }}>
@@ -62,12 +58,8 @@ export function AuthDecor() {
       </div>
 
       <div className="float-card" style={{ position: 'absolute', bottom: '24%', right: '14%', ...floatStyle('-2deg', '4.3s', '-0.8s') }}>
-        <Chip>🚌 Transport · ৳228</Chip>
+        <Chip>Transport · ৳228</Chip>
       </div>
-
-      {/* sparkles */}
-      <span className="float-card" style={{ position: 'absolute', top: '24%', left: '40%', color: '#7c3aed', fontSize: 16, ...floatStyle('0deg', '3.6s', '-0.5s') }}>✦</span>
-      <span className="float-card" style={{ position: 'absolute', bottom: '28%', right: '38%', color: '#f59e0b', fontSize: 12, ...floatStyle('0deg', '4.1s', '-1.9s') }}>✦</span>
     </div>
   )
 }

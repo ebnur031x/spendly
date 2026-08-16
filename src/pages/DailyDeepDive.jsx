@@ -8,7 +8,7 @@ import { bucketMeta, ensureBucketSettings, updateBucketSetting, indexSettings } 
 import {
   listDayTypes, createDayType, updateDayType, deleteDayType, dayTypeCost,
   listDailyLogs, dailyLogTotal, defaultItemsOf, bulkFillDayType,
-  sendDayToRealLog, markLogSent,
+  sendDayToRealLog, markLogSent, undoSend,
   listAllocations, saveAllocation,
 } from '../lib/dailyDeepDive'
 import Reveal from '../components/Reveal'
@@ -124,6 +124,8 @@ export default function DailyDeepDive() {
   const [sendingKey, setSendingKey] = useState(null)       // date currently being sent
   const [sendWeekConfirm, setSendWeekConfirm] = useState(null) // week object pending confirm
   const [sendingWeekKey, setSendingWeekKey] = useState(null)
+  const [undoingKey, setUndoingKey] = useState(null)       // date currently being un-sent
+  const anySendBusy = sendingKey !== null || sendingWeekKey !== null || undoingKey !== null
 
   // Keyed on `month` so a rollover past midnight refetches into the new month
   // instead of leaving the previous month's rows on screen.
@@ -231,9 +233,15 @@ export default function DailyDeepDive() {
     const { data: realLog, error: err } = await sendDayToRealLog(user.id, log.date, items, total, note, log.sent_log_id)
     if (isMissingSchema(err)) { setMissingSchema(true); return { error: err } }
     if (err) return { error: err }
-    const { data: updated, error: err2 } = await markLogSent(log.id, realLog.id)
+    const { error: err2 } = await markLogSent(log.id, realLog.id)
     if (err2) return { error: err2 }
-    return { data: updated }
+    // Patch sent_log_id onto the full log we already have, rather than
+    // trusting markLogSent's response — that update only returns the base
+    // deepdive_daily_log columns, not the nested items, and replacing the
+    // whole log with that would make the day look emptied out the instant
+    // it's sent (a real bug this caused: items still safe in the database,
+    // but the page showed "Nothing spent" right after every send).
+    return { data: { ...log, sent_log_id: realLog.id } }
   }
 
   async function handleSendDay(log) {
@@ -242,6 +250,18 @@ export default function DailyDeepDive() {
     setSendingKey(null)
     if (err) { setError(err.message); return }
     setLogs(prev => prev.map(l => (l.id === data.id ? data : l)))
+  }
+
+  // Removes the real entry a day was sent to and clears the link, so it
+  // goes back to "not sent" — the deep-dive's own items are untouched, so
+  // you can fix them and send again cleanly, with no orphaned real entry
+  // left behind to double-count later.
+  async function handleUndoSend(log) {
+    setUndoingKey(log.date)
+    const { error: err } = await undoSend(log.id, log.sent_log_id)
+    setUndoingKey(null)
+    if (err) { setError(err.message); return }
+    setLogs(prev => prev.map(l => (l.id === log.id ? { ...l, sent_log_id: null } : l)))
   }
 
   // Only the not-yet-sent days in this week are touched — an already-sent
@@ -540,9 +560,9 @@ export default function DailyDeepDive() {
                         and only when there's something un-sent to act on. */}
                     {open && unsentInWeek.length > 0 && (
                       <button type="button" onClick={() => setSendWeekConfirm(row.week)}
-                        disabled={sendingKey !== null || sendingWeekKey !== null}
+                        disabled={anySendBusy}
                         className="text-xs font-semibold mt-1.5 ml-1"
-                        style={{ color: daily.color, background: 'none', border: 'none', cursor: 'pointer', padding: 0, opacity: sendingKey !== null || sendingWeekKey !== null ? 0.5 : 1 }}>
+                        style={{ color: daily.color, background: 'none', border: 'none', cursor: 'pointer', padding: 0, opacity: anySendBusy ? 0.5 : 1 }}>
                         Send {unsentInWeek.length} day{unsentInWeek.length === 1 ? '' : 's'} to Daily Spend →
                       </button>
                     )}
@@ -620,16 +640,28 @@ export default function DailyDeepDive() {
                         {log.sent_log_id ? (
                           <span className="text-xs font-semibold" style={{ color: 'var(--success)' }}>Sent ✓</span>
                         ) : <span />}
-                        <button type="button"
-                          onClick={e => { e.stopPropagation(); handleSendDay(log) }}
-                          disabled={sendingKey !== null || sendingWeekKey !== null}
-                          className="text-xs font-semibold"
-                          style={{
-                            color: log.sent_log_id ? 'var(--n400)' : daily.color, background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-                            opacity: sendingKey !== null || sendingWeekKey !== null ? 0.5 : 1,
-                          }}>
-                          {sendingKey === d.key ? 'Sending…' : log.sent_log_id ? 'Re-send' : 'Send to Daily Spend →'}
-                        </button>
+                        <div className="flex items-center gap-3">
+                          {log.sent_log_id && (
+                            <button type="button"
+                              onClick={e => { e.stopPropagation(); handleUndoSend(log) }}
+                              disabled={anySendBusy}
+                              title="Removes the real entry this created and lets you re-send fresh"
+                              className="text-xs font-semibold"
+                              style={{ color: 'var(--err-txt)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, opacity: anySendBusy ? 0.5 : 1 }}>
+                              {undoingKey === d.key ? 'Undoing…' : 'Undo'}
+                            </button>
+                          )}
+                          <button type="button"
+                            onClick={e => { e.stopPropagation(); handleSendDay(log) }}
+                            disabled={anySendBusy}
+                            className="text-xs font-semibold"
+                            style={{
+                              color: log.sent_log_id ? 'var(--n400)' : daily.color, background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                              opacity: anySendBusy ? 0.5 : 1,
+                            }}>
+                            {sendingKey === d.key ? 'Sending…' : log.sent_log_id ? 'Re-send' : 'Send to Daily Spend →'}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ) : (
@@ -900,7 +932,7 @@ export default function DailyDeepDive() {
                     className="btn-soft flex-1 py-2.5 rounded-xl text-sm font-semibold">
                     Cancel
                   </button>
-                  <button onClick={() => handleSendWeek(week)} disabled={sending || sendingKey !== null}
+                  <button onClick={() => handleSendWeek(week)} disabled={sending || sendingKey !== null || undoingKey !== null}
                     className="btn-ink flex-1 py-2.5 rounded-xl text-sm font-semibold">
                     {sending ? 'Sending…' : 'Send'}
                   </button>

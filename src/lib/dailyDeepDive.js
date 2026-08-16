@@ -98,19 +98,39 @@ export function dailyLogTotal(log) {
 
 // Insert a new real daily_logs row, or — if `existingRealLogId` is given —
 // update that same row in place, so re-sending an already-sent day never
-// creates a second real entry.
-export function sendDayToRealLog(userId, date, items, totalSpent, note, existingRealLogId) {
+// creates a second real entry. If the linked row no longer exists (e.g. it
+// was deleted directly from Daily Spend), the update matches nothing —
+// falls back to inserting fresh rather than failing, so re-sending always
+// gets the day into the real table instead of erroring on a dead link.
+export async function sendDayToRealLog(userId, date, items, totalSpent, note, existingRealLogId) {
   const payload = { user_id: userId, date, day_type_id: null, expenses: items, total_spent: totalSpent, notes: note }
   if (existingRealLogId) {
-    return supabase.from('daily_logs').update(payload).eq('id', existingRealLogId).select().single()
+    const { data, error } = await supabase.from('daily_logs').update(payload).eq('id', existingRealLogId).select()
+    if (error) return { data: null, error }
+    if (data && data.length > 0) return { data: data[0], error: null }
   }
   return supabase.from('daily_logs').insert(payload).select().single()
 }
 
 // Record which real daily_logs row this deep-dive day was sent to, so the
-// page can show "Sent ✓" and re-sending targets the same real row.
+// page can show "Sent ✓" and re-sending targets the same real row. No
+// .select() here on purpose — the caller already holds the full log (with
+// its items) and only needs to know this succeeded, not get a row shape
+// back that's missing the nested items.
 export function markLogSent(deepdiveLogId, realLogId) {
-  return supabase.from('deepdive_daily_log').update({ sent_log_id: realLogId }).eq('id', deepdiveLogId).select().single()
+  return supabase.from('deepdive_daily_log').update({ sent_log_id: realLogId }).eq('id', deepdiveLogId)
+}
+
+// Undo a send: removes the real daily_logs row it created (if it's still
+// there) and clears the link, so the day goes back to "not sent" — its
+// deep-dive items are untouched, so you can fix them and send again clean.
+export async function undoSend(deepdiveLogId, realLogId) {
+  if (realLogId) {
+    const { error } = await supabase.from('daily_logs').delete().eq('id', realLogId)
+    if (error) return { error }
+  }
+  const { error } = await supabase.from('deepdive_daily_log').update({ sent_log_id: null }).eq('id', deepdiveLogId)
+  return { error }
 }
 
 // Copy a day type's default items into every one of `dates` at once (e.g.

@@ -1,5 +1,30 @@
 import { money0 } from '../lib/format'
 
+// Blends a bucket's identity color continuously toward amber, then
+// orange-red, then a bold solid red as % used climbs — so the bar itself
+// carries urgency while the icon/name keep the bucket's plain identity
+// color. Interpolates between whichever two stops bracket the current %,
+// so the tint shifts every few points instead of jumping at fixed breaks.
+export function progressColor(pctRaw, color) {
+  if (pctRaw > 100) return '#dc2626'
+  const p = Math.min(100, Math.max(0, pctRaw))
+  const stops = [
+    { at: 0, color },
+    { at: 50, color: `color-mix(in srgb, var(--warn) 40%, ${color})` },
+    { at: 75, color: 'var(--warn)' },
+    { at: 90, color: `color-mix(in srgb, #ea580c 50%, var(--warn))` },
+    { at: 100, color: '#dc2626' },
+  ]
+  for (let i = 0; i < stops.length - 1; i++) {
+    const a = stops[i], b = stops[i + 1]
+    if (p <= b.at) {
+      const ratio = (p - a.at) / (b.at - a.at) * 100
+      return `color-mix(in srgb, ${b.color} ${ratio}%, ${a.color})`
+    }
+  }
+  return stops[stops.length - 1].color
+}
+
 /* A bucket's mini-budget progress. `cap` is the monthly-equivalent amount
    (callers convert a daily cap to cap × days). Purely presentational. */
 export default function MiniBudgetBar({ used = 0, cap = null, color = '#22c55e', note, compact = false }) {
@@ -13,8 +38,9 @@ export default function MiniBudgetBar({ used = 0, cap = null, color = '#22c55e',
   }
 
   const pct = Math.min(100, (used / cap) * 100)
+  const pctRaw = (used / cap) * 100
   const over = used > cap
-  const barColor = over ? 'var(--danger)' : pct > 85 ? 'var(--warn)' : color
+  const barColor = progressColor(pctRaw, color)
 
   return (
     <div>

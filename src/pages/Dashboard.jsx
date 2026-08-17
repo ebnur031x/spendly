@@ -20,6 +20,12 @@ import ThemeToggle from '../components/ThemeToggle'
 
 const MONTH_RE = /^\d{4}-\d{2}$/
 
+const DOT_LEGEND = [
+  { color: '#ff5f57', label: 'Over budget' },
+  { color: '#febc2e', label: 'Approaching limit' },
+  { color: '#28c840', label: 'On track' },
+]
+
 export default function Dashboard() {
   const { user } = useAuth()
   const location = useLocation()
@@ -51,6 +57,14 @@ export default function Dashboard() {
   const [now, setNow] = useState(() => new Date())
   const [showReset, setShowReset] = useState(false)
   const [resetting, setResetting] = useState(false)
+  const [dotHover, setDotHover] = useState(null)
+
+  useEffect(() => {
+    if (dotHover === null) return
+    const close = () => setDotHover(null)
+    document.addEventListener('click', close)
+    return () => document.removeEventListener('click', close)
+  }, [dotHover])
 
   useEffect(() => { load() /* eslint-disable-next-line */ }, [month])
 
@@ -295,7 +309,33 @@ export default function Dashboard() {
 
       {/* Four buckets */}
       <div className="flex items-center justify-between mb-3 mt-7 px-1">
-        <h2 style={{ fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--n500)' }}>
+        <h2 className="flex items-center gap-2" style={{ fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--n500)' }}>
+          <span className="flex items-center gap-1.5">
+            {DOT_LEGEND.map((d, i) => (
+              <span key={d.color} style={{ position: 'relative' }}
+                onMouseEnter={() => setDotHover(i)}
+                onMouseLeave={() => setDotHover(null)}
+                onClick={e => { e.stopPropagation(); setDotHover(h => h === i ? null : i) }}>
+                <span style={{
+                  display: 'block', width: 10, height: 10, borderRadius: '50%', background: d.color,
+                  boxShadow: 'inset 0 -1px 1.5px rgba(0,0,0,0.3), inset 0 1px 1px rgba(255,255,255,0.35)',
+                  cursor: 'default',
+                }} />
+                {dotHover === i && (
+                  <span className="pop-fade" style={{
+                    position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)',
+                    marginBottom: 8, zIndex: 30, whiteSpace: 'nowrap', pointerEvents: 'none',
+                    background: 'var(--surface-2)', border: '1px solid var(--border-soft)',
+                    borderRadius: 7, padding: '4px 8px', fontSize: '0.65rem', fontWeight: 600,
+                    textTransform: 'none', letterSpacing: 'normal', color: 'var(--n700)',
+                    boxShadow: 'var(--shadow-tooltip)',
+                  }}>
+                    {d.label}
+                  </span>
+                )}
+              </span>
+            ))}
+          </span>
           Your Buckets
         </h2>
         <span className="text-xs" style={{ color: 'var(--n350)' }}>all net against ৳{money0(main).slice(1)}</span>

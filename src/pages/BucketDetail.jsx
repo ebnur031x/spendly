@@ -120,7 +120,7 @@ export default function BucketDetail({ bucketKey }) {
     }
     const billType = (key === 'bills' && cfg.types) ? type : suggestBillType(trimmed)
     return {
-      user_id: user.id, title: trimmed, amount: amt,
+      user_id: user.id, title: trimmed || billType, amount: amt,
       category: 'oneoff', category_name: billType,
       bucket: 'bills', date,
     }
@@ -205,7 +205,8 @@ export default function BucketDetail({ bucketKey }) {
   const capPeriod = setting?.cap_period ?? 'monthly'
   const { cap, label: capLabel } = resolveCap({ miniBudget, capPeriod }, daysInMonth(month))
   const color = setting?.color ?? meta.color
-  const canAdd = !!amount && parseFloat(amount) > 0 && !!name.trim()
+  const needsNote = !cfg.types || type === 'Other' || type === 'One-off'
+  const canAdd = !!amount && parseFloat(amount) > 0 && (!needsNote || !!name.trim())
 
   return (
     <main className="min-h-screen px-5 sm:px-8 pt-6 sm:pt-10 pb-28 md:pb-10 max-w-2xl mx-auto fade-up">
@@ -293,7 +294,10 @@ export default function BucketDetail({ bucketKey }) {
                 {cfg.types.map(t => {
                   const on = type === t.label
                   return (
-                    <button key={t.label} type="button" onClick={() => setType(t.label)}
+                    <button key={t.label} type="button" onClick={() => {
+                      setType(t.label)
+                      if (t.label !== 'Other' && t.label !== 'One-off') setName('')
+                    }}
                       className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium"
                       style={{
                         background: on ? `${color}20` : 'var(--surface-2)',
@@ -307,8 +311,10 @@ export default function BucketDetail({ bucketKey }) {
               </div>
             )}
 
-            <input value={name} onChange={e => setName(e.target.value)} placeholder={cfg.namePlaceholder}
-              className="w-full rounded-xl px-3.5 py-2.5 text-sm mb-4" style={inputStyle} />
+            {needsNote && (
+              <input value={name} onChange={e => setName(e.target.value)} placeholder={cfg.namePlaceholder}
+                className="w-full rounded-xl px-3.5 py-2.5 text-sm mb-4" style={inputStyle} />
+            )}
 
             <BucketRedirectChips text={name} target={composerBucket} setTarget={setComposerBucket} homeBucket={key} />
 

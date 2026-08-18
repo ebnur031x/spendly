@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
@@ -77,7 +78,7 @@ export default function BucketDetail({ bucketKey }) {
   const [saving, setSaving] = useState(false)
   const amountRef = useRef(null)
 
-  // edit / cap modals
+  // edit / cap / bulk-move modals
   const [editing, setEditing] = useState(null)
   const [editName, setEditName] = useState('')
   const [editAmount, setEditAmount] = useState('')
@@ -85,6 +86,10 @@ export default function BucketDetail({ bucketKey }) {
   const [editBucket, setEditBucket] = useState(key)
   const [showCap, setShowCap] = useState(false)
   const [capVal, setCapVal] = useState('')
+  const [movingGroup, setMovingGroup] = useState(null)
+  const [selectedMoveIds, setSelectedMoveIds] = useState([])
+  const [moveDate, setMoveDate] = useState('')
+  const [moving, setMoving] = useState(false)
 
   useEffect(() => { load() /* eslint-disable-next-line */ }, [key])
 
@@ -163,6 +168,7 @@ export default function BucketDetail({ bucketKey }) {
     // Moving an entry to another bucket drops it from this bucket's list.
     else if (data) setRows(prev => editBucket === key
       ? prev.map(r => r.id === editing.id ? data : r)
+        .sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.created_at || '').localeCompare(a.created_at || ''))
       : prev.filter(r => r.id !== editing.id))
     setEditing(null)
   }
@@ -172,6 +178,35 @@ export default function BucketDetail({ bucketKey }) {
     setRows(rows.filter(r => r.id !== id))
     const { error: err } = await supabase.from('expenses').delete().eq('id', id)
     if (err) { setError(err.message); setRows(prev) }
+  }
+
+  function openBulkMove(group) {
+    setMovingGroup(group)
+    setSelectedMoveIds(group.items.map(item => item.id))
+    setMoveDate(group.date)
+  }
+
+  function toggleMoveItem(id) {
+    setSelectedMoveIds(prev => prev.includes(id) ? prev.filter(itemId => itemId !== id) : [...prev, id])
+  }
+
+  const destinationItems = useMemo(() => {
+    if (!moveDate || !movingGroup || moveDate === movingGroup.date) return []
+    return rows.filter(row => row.date === moveDate && !selectedMoveIds.includes(row.id))
+  }, [moveDate, movingGroup, rows, selectedMoveIds])
+
+  async function saveBulkMove() {
+    if (!movingGroup || !moveDate || moveDate === movingGroup.date || selectedMoveIds.length === 0 || moving) return
+    setMoving(true); setError('')
+    const { data, error: err } = await supabase.from('expenses')
+      .update({ date: moveDate }).in('id', selectedMoveIds).select()
+    setMoving(false)
+    if (err) { setError(err.message); return }
+    const byId = new Map((data ?? []).map(row => [row.id, row]))
+    setRows(prev => prev.map(row => byId.get(row.id) ?? row)
+      .sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.created_at || '').localeCompare(a.created_at || '')))
+    setMovingGroup(null)
+    toast({ icon: '✓', message: `Moved ${selectedMoveIds.length} grocery item${selectedMoveIds.length === 1 ? '' : 's'} to ${fmtDate(moveDate)}` })
   }
 
   async function saveCap() {
@@ -341,6 +376,11 @@ export default function BucketDetail({ bucketKey }) {
           <h2 className="text-lg font-bold" style={{ color: 'var(--n900)' }}>History</h2>
           <span className="text-sm tabular-nums" style={{ color: 'var(--n350)' }}>{money0(totalAll)} all time</span>
         </div>
+        {rows.length > 0 && (
+          <p className="text-xs -mt-1 mb-3 px-1" style={{ color: 'var(--n350)' }}>
+            Tap the pencil on an expense to edit it or move it to another date.
+          </p>
+        )}
 
         {loading ? (
           <div className="card flex justify-center py-16">
@@ -362,7 +402,15 @@ export default function BucketDetail({ bucketKey }) {
                     <span className="text-xs font-bold uppercase" style={{ color: 'var(--n400)', letterSpacing: '0.06em' }}>
                       {fmtDate(group.date)}
                     </span>
-                    <span className="text-xs font-semibold tabular-nums" style={{ color: 'var(--n400)' }}>{money0(subtotal)}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold tabular-nums" style={{ color: 'var(--n400)' }}>{money0(subtotal)}</span>
+                      {key === 'groceries' && (
+                        <button type="button" onClick={() => openBulkMove(group)}
+                          className="btn-soft rounded-full px-2.5 py-1 text-[11px] font-semibold">
+                          Move items
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <div className="card overflow-hidden">
                     <ul>
@@ -425,6 +473,60 @@ export default function BucketDetail({ bucketKey }) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Bulk move is intentionally available only for groceries: it lets a
+          whole shopping day's entries be reassigned without recreating them. */}
+      {movingGroup && createPortal(
+        <div className="modal-scrim modal-scrim-centered" onClick={() => !moving && setMovingGroup(null)}>
+          <div className="modal-sheet" onClick={e => e.stopPropagation()}>
+            <div className="p-6">
+              <div className="flex items-start justify-between gap-3 mb-2">
+                <div>
+                  <h2 className="text-lg font-extrabold" style={{ color: 'var(--n900)', letterSpacing: '-0.02em' }}>Move grocery items</h2>
+                  <p className="text-xs mt-1" style={{ color: 'var(--n350)' }}>Choose items from {fmtDate(movingGroup.date)}, then pick their new date.</p>
+                </div>
+                <button onClick={() => setMovingGroup(null)} disabled={moving} aria-label="Close" style={{ ...editBtnStyle, width: 36, height: 36, fontSize: 14 }}>×</button>
+              </div>
+
+              <div className="mt-5 mb-4 rounded-xl overflow-hidden" style={{ border: '1px solid var(--border-soft)' }}>
+                {movingGroup.items.map((item, index) => {
+                  const selected = selectedMoveIds.includes(item.id)
+                  return (
+                    <label key={item.id} className="flex items-center gap-3 px-3.5 py-3 cursor-pointer"
+                      style={{ borderBottom: index < movingGroup.items.length - 1 ? '1px solid var(--hairline)' : 'none' }}>
+                      <input type="checkbox" checked={selected} onChange={() => toggleMoveItem(item.id)} disabled={moving}
+                        className="w-4 h-4 accent-[var(--ink)]" />
+                      <span className="flex-1 min-w-0 text-sm font-medium truncate" style={{ color: 'var(--n800)' }}>{item.title}</span>
+                      <span className="text-sm font-semibold tabular-nums" style={{ color: 'var(--n600)' }}>{money(item.amount)}</span>
+                    </label>
+                  )
+                })}
+              </div>
+
+              <div className="flex items-center justify-between mb-4 px-1">
+                <span className="text-xs font-semibold uppercase" style={{ color: 'var(--n400)', letterSpacing: '0.06em' }}>Move selected to</span>
+                <input type="date" value={moveDate} onChange={e => e.target.value && setMoveDate(e.target.value)} disabled={moving}
+                  className="text-xs font-semibold rounded-full px-3 py-1.5 cursor-pointer"
+                  style={{ background: 'var(--surface-2)', border: '1.5px solid var(--border-2)', color: 'var(--n700)' }} />
+              </div>
+
+              {destinationItems.length > 0 && (
+                <div className="rounded-xl px-3.5 py-3 mb-4" style={{ background: 'var(--warn-bg, #fff7e6)', border: '1px solid var(--warn-border, #f0c36a)', color: 'var(--n700)' }}>
+                  <p className="text-sm font-semibold">{destinationItems.length} grocery item{destinationItems.length === 1 ? '' : 's'} already {destinationItems.length === 1 ? 'is' : 'are'} on {fmtDate(moveDate)}.</p>
+                  <p className="text-xs mt-1">You can cancel and remove those first, or move these items there anyway.</p>
+                </div>
+              )}
+
+              <button onClick={saveBulkMove} disabled={moving || selectedMoveIds.length === 0 || moveDate === movingGroup.date}
+                className="btn-ink w-full py-2.5 rounded-xl text-sm font-semibold"
+                style={{ opacity: moving || selectedMoveIds.length === 0 || moveDate === movingGroup.date ? 0.45 : 1 }}>
+                {moving ? 'Moving…' : destinationItems.length > 0 ? `Move ${selectedMoveIds.length} item${selectedMoveIds.length === 1 ? '' : 's'} anyway` : `Move ${selectedMoveIds.length} item${selectedMoveIds.length === 1 ? '' : 's'}`}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body,
       )}
 
       {/* Mini-budget cap modal */}

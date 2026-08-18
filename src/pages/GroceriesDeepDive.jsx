@@ -68,7 +68,8 @@ export default function GroceriesDeepDive() {
   const [date, setDate] = useState(dayKey(new Date()))
   const [saving, setSaving] = useState(false)
 
-  // inline edit
+  // Editing an item includes its date, so a saved item can be moved to a
+  // different day without deleting and re-adding it.
   const [editingId, setEditingId] = useState(null)
   const [editName, setEditName] = useState('')
   const [editAmount, setEditAmount] = useState('')
@@ -309,6 +310,9 @@ export default function GroceriesDeepDive() {
           </div>
         ) : (
           <div className="flex flex-col gap-5">
+            <p className="text-xs -mb-1 px-1" style={{ color: 'var(--n350)' }}>
+              Tap the pencil on any item to edit it or move the same item to a different date.
+            </p>
             {weeks.map(week => (
               <div key={week.key}>
                 <div className="flex items-center justify-between mb-2 px-1">
@@ -320,7 +324,7 @@ export default function GroceriesDeepDive() {
                 <div className="card overflow-hidden">
                   <ul>
                     {week.items.map((entry, i) => (
-                      <li key={entry.id} className="row-hover flex items-center gap-2 px-4 sm:px-5 py-3"
+                      <li key={entry.id} className={`row-hover flex items-center gap-2 px-4 sm:px-5 py-3 ${editingId === entry.id ? 'flex-wrap' : ''}`}
                         style={{ borderBottom: i < week.items.length - 1 ? '1px solid var(--hairline)' : 'none' }}>
                         {editingId === entry.id ? (
                           <>
@@ -351,7 +355,7 @@ export default function GroceriesDeepDive() {
                               </p>
                             </div>
                             <span className="text-sm font-semibold tabular-nums flex-shrink-0" style={{ color: 'var(--n900)' }}>{money(entry.amount)}</span>
-                            <button onClick={() => openEdit(entry)} title="Edit" style={editBtnStyle}>✎</button>
+                            <button onClick={() => openEdit(entry)} title="Edit item or move its date" aria-label={`Edit ${entry.name} or move its date`} style={editBtnStyle}>✎</button>
                             <button onClick={() => handleDelete(entry.id)} className="btn-delete" title="Delete">×</button>
                           </>
                         )}

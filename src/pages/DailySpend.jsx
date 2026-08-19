@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
@@ -103,9 +104,17 @@ export default function DailySpend() {
   const [savingEdit, setSavingEdit] = useState(false)
 
   // day-log flows
-  const [logToEdit, setLogToEdit] = useState(null)
   const [newLog, setNewLog] = useState(false)
   const [showDayTypes, setShowDayTypes] = useState(false)
+
+  // convert a "Log a day" entry into a regular expense (category/bucket edit)
+  const [convertingLog, setConvertingLog] = useState(null) // { log, itemIndex } — itemIndex -1 means the whole day's total
+  const [convTitle, setConvTitle] = useState('')
+  const [convAmount, setConvAmount] = useState('')
+  const [convDate, setConvDate] = useState('')
+  const [convCategory, setConvCategory] = useState('Food')
+  const [convBucket, setConvBucket] = useState('daily')
+  const [savingConv, setSavingConv] = useState(false)
 
   useEffect(() => { fetchData() /* eslint-disable-next-line */ }, [])
 
@@ -206,6 +215,42 @@ export default function DailySpend() {
     })
   }
 
+  function openConvert(log, itemIndex) {
+    const isWhole = itemIndex === -1
+    const item = isWhole ? null : (log.expenses || [])[itemIndex]
+    setConvertingLog({ log, itemIndex })
+    setConvTitle(isWhole ? (dayTypes.find(d => d.id === log.day_type_id)?.name || 'Expense') : (item?.label || ''))
+    setConvAmount(String(isWhole ? log.total_spent : (item?.amount ?? '')))
+    setConvDate(log.date || todayKey)
+    setConvCategory('Food')
+    setConvBucket('daily')
+  }
+
+  async function handleSaveConvert() {
+    if (!convertingLog || savingConv) return
+    const newAmt = parseFloat(convAmount)
+    if (!(newAmt > 0)) return
+    setSavingConv(true); setError('')
+    const { log, itemIndex } = convertingLog
+    const selectedCategory = getCategoryMeta(convCategory)
+    const cat = convBucket === 'groceries'
+      ? { type: 'variable', label: 'Groceries' }
+      : convBucket === 'bills'
+        ? { type: 'oneoff', label: suggestBillType(convTitle) }
+        : selectedCategory
+    const row = {
+      user_id: user.id, title: convTitle.trim() || cat.label, amount: newAmt,
+      category: cat.type, category_name: cat.label, bucket: convBucket, date: convDate,
+    }
+    const { data, error: err } = await insertExpenses([row])
+    if (err) { setError(err.message); setSavingConv(false); return }
+    await handleDeleteLogItem(log, itemIndex)
+    if (convBucket === 'daily' && data?.[0]) setExpenses(prev => [data[0], ...prev])
+    else toast({ icon: bucketMeta(convBucket).icon, message: `Added to ${bucketMeta(convBucket).name}` })
+    setSavingConv(false)
+    setConvertingLog(null)
+  }
+
   async function handleDeleteLogItem(log, itemIndex) {
     if (itemIndex === -1) {
       const { error: err } = await supabase.from('daily_logs').delete().eq('id', log.id)
@@ -235,7 +280,9 @@ export default function DailySpend() {
     setEditDate(expenseDay(exp) || todayKey)
     setEditCategory(exp.category_name || 'Food')
     setEditBucket(exp.bucket || 'daily')
-    setEditShowCats(false)
+    // Editing is primarily used to reclassify an expense. Show the choices
+    // immediately, instead of making people find a second "Change" button.
+    setEditShowCats(true)
   }
 
   async function handleSaveEdit() {
@@ -243,9 +290,16 @@ export default function DailySpend() {
     const newAmt = parseFloat(editAmount)
     if (!(newAmt > 0)) return
     setSavingEdit(true)
-    const cat = getCategoryMeta(editCategory)
+    const selectedCategory = getCategoryMeta(editCategory)
+    // Groceries and Bills are buckets rather than individual daily-spend
+    // categories. Keep their saved labels in sync when an expense is moved.
+    const cat = editBucket === 'groceries'
+      ? { type: 'variable', label: 'Groceries' }
+      : editBucket === 'bills'
+        ? { type: 'oneoff', label: suggestBillType(editTitle) }
+        : selectedCategory
     const { data, error: err } = await supabase.from('expenses')
-      .update({ title: editTitle.trim() || cat.label, amount: newAmt, date: editDate, category: cat.type, category_name: editCategory, bucket: editBucket })
+      .update({ title: editTitle.trim() || cat.label, amount: newAmt, date: editDate, category: cat.type, category_name: cat.label, bucket: editBucket })
       .eq('id', editing.id).select().single()
     if (err) setError(err.message)
     // Moving an entry out of Daily drops it from the day-by-day log.
@@ -655,7 +709,7 @@ export default function DailySpend() {
                             </div>
                             <div className="flex items-center gap-2 flex-shrink-0">
                               <span className="text-sm font-semibold tabular-nums" style={{ color: 'var(--n900)' }}>−{fmt(item.amount)}</span>
-                              <button onClick={() => setLogToEdit(log)} title="Edit" style={editBtnStyle}>✎</button>
+                              <button onClick={() => openConvert(log, item.rawIdx)} title="Edit" style={editBtnStyle}>✎</button>
                               <button onClick={() => handleDeleteLogItem(log, item.rawIdx)} className="btn-delete" title="Delete">×</button>
                             </div>
                           </li>
@@ -670,7 +724,7 @@ export default function DailySpend() {
                             </div>
                             <div className="flex items-center gap-2 flex-shrink-0">
                               <span className="text-sm font-semibold tabular-nums" style={{ color: 'var(--n900)' }}>−{fmt(log.total_spent)}</span>
-                              <button onClick={() => setLogToEdit(log)} title="Edit" style={editBtnStyle}>✎</button>
+                              <button onClick={() => openConvert(log, -1)} title="Edit" style={editBtnStyle}>✎</button>
                               <button onClick={() => handleDeleteLogItem(log, -1)} className="btn-delete" title="Delete">×</button>
                             </div>
                           </li>
@@ -691,12 +745,57 @@ export default function DailySpend() {
           onClose={() => setNewLog(false)} onSaved={() => { setNewLog(false); fetchData() }} />
       )}
 
-      {/* Day log edit */}
-      {logToEdit && (
-        <LogTodayModal userId={user.id} dayTypes={dayTypes}
-          initialType={dayTypes.find(d => d.id === logToEdit.day_type_id) ?? null}
-          initialLog={logToEdit} onClose={() => setLogToEdit(null)}
-          onSaved={() => { setLogToEdit(null); fetchData() }} />
+      {/* Convert a "Log a day" entry into a regular expense — same
+          category/Bills/Groceries picker as editing a normal expense,
+          since that's what people expect "Edit" to do here. */}
+      {convertingLog && createPortal(
+        <div className="modal-scrim" onClick={() => !savingConv && setConvertingLog(null)}>
+          <div className="modal-sheet" onClick={e => e.stopPropagation()}>
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-5">
+                <h2 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--n900)', letterSpacing: '-0.02em' }}>Edit expense</h2>
+                <button onClick={() => setConvertingLog(null)} style={{ ...editBtnStyle, width: 36, height: 36, fontSize: 14 }}>✕</button>
+              </div>
+              <input value={convTitle} onChange={e => setConvTitle(e.target.value)} placeholder="Description"
+                className="w-full rounded-xl px-3.5 py-2.5 text-sm mb-3" style={inputStyle} autoFocus />
+              <div className="flex items-center justify-between mb-3 px-1">
+                <span className="text-xs font-semibold uppercase" style={{ color: 'var(--n400)', letterSpacing: '0.06em' }}>Date</span>
+                <input type="date" value={convDate} onChange={e => e.target.value && setConvDate(e.target.value)}
+                  className="text-xs font-semibold rounded-full px-3 py-1.5 cursor-pointer"
+                  style={{ background: 'var(--surface-2)', border: '1.5px solid var(--border-2)', color: 'var(--n700)' }} />
+              </div>
+              <div className="flex items-center rounded-2xl px-4 mb-4" style={{ background: 'var(--surface-2)', border: '1.5px solid var(--border-2)' }}>
+                <span className="text-2xl font-bold mr-1" style={{ color: 'var(--n300)' }}>৳</span>
+                <input type="number" min="0.01" step="0.01" value={convAmount} onChange={e => setConvAmount(e.target.value)} placeholder="0"
+                  className="w-full py-3 text-3xl font-extrabold tabular-nums"
+                  style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--n900)', letterSpacing: '-0.02em' }} />
+              </div>
+              <div className="mb-4">
+                <p className="text-xs mb-2" style={{ color: 'var(--n400)' }}>Category</p>
+                <div className="flex flex-wrap gap-2">
+                  {CATEGORIES.filter(c => c.type === 'variable').map(c => {
+                    const on = convCategory === c.name
+                    return (
+                      <button key={c.name} type="button" onClick={() => setConvCategory(c.name)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium"
+                        style={{ border: '1.5px solid ' + (on ? 'var(--ink)' : 'var(--border)'), background: on ? 'var(--ink)' : 'var(--surface)', color: on ? 'var(--on-ink)' : 'var(--n550)' }}>
+                        <span style={{ fontSize: 13 }}>{c.emoji}</span>{c.name}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+              <div className="mb-4">
+                <BucketPicker value={convBucket} onChange={setConvBucket} />
+              </div>
+              <button onClick={handleSaveConvert} disabled={savingConv || !(parseFloat(convAmount) > 0)}
+                className="btn-ink w-full font-semibold rounded-xl" style={{ padding: '12px', fontSize: 15, opacity: savingConv || !(parseFloat(convAmount) > 0) ? 0.45 : 1 }}>
+                {savingConv ? 'Saving…' : 'Save changes'}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body,
       )}
 
       {/* Manage day types */}
@@ -706,7 +805,7 @@ export default function DailySpend() {
       )}
 
       {/* Edit expense modal */}
-      {editing && (
+      {editing && createPortal(
         <div className="modal-scrim" onClick={() => !savingEdit && setEditing(null)}>
           <div className="modal-sheet" onClick={e => e.stopPropagation()}>
             <div className="p-6">
@@ -772,7 +871,8 @@ export default function DailySpend() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
 
     </main>

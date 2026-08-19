@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { money0 } from '../lib/format'
 import { DAY_TYPE_COLORS, createDayType, updateDayType, deleteDayType } from '../lib/dayTypes'
 import ColorSwatches from './ColorSwatches'
@@ -24,7 +25,7 @@ export default function DayTypesModal({ userId, dayTypes, onClose, onChanged }) 
     else onChanged?.()
   }
 
-  return (
+  return createPortal(
     <div className="modal-scrim" onClick={onClose}>
       <div className="modal-sheet" onClick={e => e.stopPropagation()}>
         <div className="p-6">
@@ -81,7 +82,8 @@ export default function DayTypesModal({ userId, dayTypes, onClose, onChanged }) 
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
 

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { money0 } from '../lib/format'
 import { dayKey } from '../lib/dates'
 import { isTextField } from '../lib/dayTypes'
@@ -37,9 +38,12 @@ export default function LogTodayModal({ userId, dayTypes, initialType = null, in
 
   function pick(dt) {
     setType(dt)
-    setValues(initValues(dt))
-    setLocalLabels({})
-    setExtras([])
+    // If we're editing an existing log and had to fall back to the picker
+    // (e.g. its original day type no longer resolved), re-selecting a type
+    // should still recover the log's saved amounts instead of wiping them.
+    setValues(initialLog ? initValuesFromLog(dt, initialLog) : initValues(dt))
+    setLocalLabels(initialLog ? initLocalLabels(dt, initialLog) : {})
+    setExtras(initialLog ? initExtras(dt, initialLog) : [])
     setEditingLabelIdx(null)
   }
 
@@ -81,7 +85,7 @@ export default function LogTodayModal({ userId, dayTypes, initialType = null, in
     onSaved?.()
   }
 
-  return (
+  return createPortal(
     <div className="modal-scrim" onClick={onClose}>
       <div className="modal-sheet" onClick={e => e.stopPropagation()}>
         <div className="p-6">
@@ -293,7 +297,8 @@ export default function LogTodayModal({ userId, dayTypes, initialType = null, in
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
 

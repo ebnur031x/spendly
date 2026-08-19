@@ -183,6 +183,19 @@ export default function Dashboard() {
     return { view, cap, used: snap.bucketTotals[b.key] || 0, entries: preview[b.key] || [] }
   })
 
+  // Same daily bar chart, one dataset per bucket — commitments are keyed by
+  // `due_date` in fixed_costs rather than `date`, so normalize that here.
+  const trendCategories = cards.map(c => ({
+    key: c.view.key,
+    label: c.view.name.replace(' Spend', ''),
+    icon: c.view.icon,
+    color: c.view.color,
+    expenses: c.view.key === 'daily' ? dailyExpenses
+      : c.view.key === 'groceries' ? snap.groceryExpenses
+      : c.view.key === 'bills' ? snap.billsExpenses
+      : snap.commitmentInstances.map(ci => ({ ...ci, date: ci.due_date, title: ci.name })),
+  }))
+
   return (
     <main className="min-h-screen px-5 sm:px-8 pt-6 sm:pt-10 pb-28 md:pb-10 max-w-2xl mx-auto">
       {toast && (
@@ -356,10 +369,10 @@ export default function Dashboard() {
         </Link>
       </div>
 
-      {/* Daily spending trend — Daily Spend bucket only, so bills/groceries
-          never distort the day-by-day picture */}
+      {/* Daily spending trend — one dataset per bucket, switchable via the
+          tabs inside the card, so no single view distorts the others */}
       <Reveal className="mb-4" delay={20}>
-        <SpendingTrend monthExpenses={dailyExpenses} dailyLogs={dailyLogs} dayTypes={dayTypes} month={month} remaining={remaining} />
+        <SpendingTrend categories={trendCategories} dailyLogs={dailyLogs} dayTypes={dayTypes} month={month} remaining={remaining} />
       </Reveal>
 
       {showReset && (

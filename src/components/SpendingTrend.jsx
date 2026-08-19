@@ -17,7 +17,7 @@ function topRoundedRect(x, y, w, h, rx) {
 }
 
 export default function SpendingTrend({
-  monthExpenses = [],
+  categories = [],
   dailyLogs = [],
   dayTypes = [],
   month = monthKey(),
@@ -26,8 +26,14 @@ export default function SpendingTrend({
   const days = daysInMonth(month)
   const todayDay = month === monthKey() ? new Date().getDate() : -1
   const [clicked, setClicked] = useState(null) // { day, mobile, left?, top? }
+  const [selectedKey, setSelectedKey] = useState(categories[0]?.key)
   const cardRef = useRef(null)
   const svgRef = useRef(null)
+
+  const selected = categories.find(c => c.key === selectedKey) ?? categories[0] ?? { key: 'daily', label: 'Daily', color: FALLBACK_TYPE_COLOR, expenses: [] }
+  const isDaily = selected.key === 'daily'
+  const monthExpenses = selected.expenses ?? []
+  const effectiveDailyLogs = isDaily ? dailyLogs : []
 
   const colorById = {}
   for (const dt of dayTypes) colorById[dt.id] = dt.color
@@ -46,7 +52,7 @@ export default function SpendingTrend({
     daily[d - 1].total += amt
     daily[d - 1].plain += amt
   }
-  for (const log of dailyLogs) {
+  for (const log of effectiveDailyLogs) {
     const d = dayOf(log.date)
     if (!d) continue
     const amt = Number(log.total_spent) || 0
@@ -55,9 +61,10 @@ export default function SpendingTrend({
   }
 
   const maxTotal = Math.max(1, ...daily.map(x => x.total))
+  const categoryColor = selected.color || FALLBACK_TYPE_COLOR
 
   function barColor(x) {
-    let bestColor = PLAIN_COLOR
+    let bestColor = isDaily ? PLAIN_COLOR : categoryColor
     let bestAmt = x.plain
     for (const [id, amt] of Object.entries(x.byType)) {
       if (amt > bestAmt) {
@@ -75,9 +82,11 @@ export default function SpendingTrend({
   const W = days * slot
   const H = barH + labelH
 
-  // Daily allowance line: remaining ÷ days left in month
+  // Daily allowance line: remaining ÷ days left in month. Only meaningful
+  // against the Daily Spend bucket — the overall budget remainder has no
+  // sensible per-day reading for groceries/bills/commitments.
   const daysLeft = month === monthKey() ? daysLeftInMonth() : 0
-  const dailyAllowance = daysLeft > 0 && remaining > 0 ? remaining / daysLeft : 0
+  const dailyAllowance = isDaily && daysLeft > 0 && remaining > 0 ? remaining / daysLeft : 0
   const rawLineY = dailyAllowance > 0 ? barH - (dailyAllowance / maxTotal) * barH : -1
   const lineY = rawLineY >= 2 && rawLineY <= barH - 2 ? rawLineY : null
 
@@ -125,8 +134,9 @@ export default function SpendingTrend({
     const expenses = monthExpenses.filter(e => e.date === dateStr)
     // A date can have more than one Log Today entry (nothing currently stops
     // creating a second one) — aggregate ALL of them so nothing is silently
-    // hidden, and surface a warning when that's actually the case.
-    const logsForDay = dailyLogs.filter(l => l.date === dateStr)
+    // hidden, and surface a warning when that's actually the case. Day logs
+    // only ever belong to the Daily Spend bucket.
+    const logsForDay = effectiveDailyLogs.filter(l => l.date === dateStr)
     const dt = logsForDay.length === 1 ? dayTypes.find(d => d.id === logsForDay[0].day_type_id) : null
     const dayTypeNames = logsForDay.length > 1
       ? logsForDay.map(l => dayTypes.find(d => d.id === l.day_type_id)?.name || 'Day log')
@@ -153,12 +163,39 @@ export default function SpendingTrend({
 
   return (
     <div ref={cardRef} className="card p-6" style={{ position: 'relative' }}>
-      <h2 style={{
-        fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase',
-        letterSpacing: '0.1em', color: 'var(--n500)', marginBottom: '1rem',
-      }}>
-        This Month
-      </h2>
+      <div className="flex items-center justify-between flex-wrap gap-2" style={{ marginBottom: '1rem' }}>
+        <h2 style={{
+          fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase',
+          letterSpacing: '0.1em', color: 'var(--n500)',
+        }}>
+          This Month
+        </h2>
+        {categories.length > 1 && (
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {categories.map(c => {
+              const on = c.key === selected.key
+              return (
+                <button
+                  key={c.key}
+                  type="button"
+                  onClick={() => { setSelectedKey(c.key); setClicked(null) }}
+                  className="flex items-center gap-1 rounded-full font-semibold"
+                  style={{
+                    padding: '4px 10px', fontSize: '0.68rem',
+                    background: on ? `${c.color}22` : 'var(--surface-2)',
+                    color: on ? c.color : 'var(--n400)',
+                    border: '1.5px solid ' + (on ? `${c.color}66` : 'var(--border-soft)'),
+                    cursor: 'pointer', transition: 'background 0.15s, color 0.15s',
+                  }}
+                >
+                  {c.icon && <span style={{ fontSize: '0.75rem' }}>{c.icon}</span>}
+                  {c.label}
+                </button>
+              )
+            })}
+          </div>
+        )}
+      </div>
 
       {/* Mobile scrim */}
       {clicked?.mobile && (
@@ -255,7 +292,7 @@ export default function SpendingTrend({
         viewBox={`0 0 ${W} ${H}`}
         style={{ display: 'block', width: '100%', height: 'auto', overflow: 'visible' }}
         role="img"
-        aria-label="Daily spending this month"
+        aria-label={`Daily ${selected.label} spending this month`}
       >
         {/* Daily allowance dashed line */}
         {lineY !== null && (

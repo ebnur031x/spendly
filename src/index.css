@@ -479,6 +479,9 @@ html { scroll-behavior: smooth; }
   padding: 0;
   animation: overlay-in 0.18s ease both;
 }
+/* Use this for focused, task-sized dialogs on phones instead of a bottom
+   sheet, so the next action appears in the middle of the visible screen. */
+.modal-scrim-centered { align-items: center; padding: 16px; }
 @media (min-width: 640px) {
   .modal-scrim { align-items: center; padding: 24px; }
 }

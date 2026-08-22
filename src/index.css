@@ -47,6 +47,7 @@
   --blue: #3b82f6;
 
   --font-serif: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --font-mono: 'SF Mono', 'Cascadia Code', 'Consolas', ui-monospace, monospace;
 
   --err-bg: rgba(239,68,68,0.06);
   --err-txt: #dc2626;
@@ -508,3 +509,24 @@ html { scroll-behavior: smooth; }
 /* big tap-target press feedback for day-type / option tiles */
 .tile-press { transition: transform 0.09s ease, border-color 0.15s, background-color 0.15s; }
 .tile-press:active { transform: scale(0.97); }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   SpendingTrend chart type styles — money in a serif, data captions in
+   mono, so the pie/line/bar view reads distinctly from the rest of the UI.
+   ═══════════════════════════════════════════════════════════════════════ */
+.money-serif {
+  font-family: var(--font-serif);
+  /* Not italic: Fraunces has no italic glyph for ৳ (Bengali Taka sign), so
+     the browser falls back to a different font for just that character —
+     under an italic skew, that fallback's ৳ renders with a diagonal stroke
+     that reads as a line through the whole amount. Upright serif avoids it
+     while still keeping the "editorial" contrast against the sans UI type. */
+  font-style: normal;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.data-mono {
+  font-family: var(--font-mono);
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+}

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { useUndoableDelete } from '../hooks/useUndoableDelete'
 import { listSavings, createSaving, updateSaving, deleteSaving } from '../lib/savings'
 
 const fmt = (n) =>
@@ -11,8 +12,37 @@ const inputStyle = {
   color: 'var(--n900)',
 }
 
+// Replaces the old 🐷 emoji with a proper line icon.
+function PiggyIcon({ size = 18 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M19 8.5V7l-2 1.1A6.8 6.8 0 0 0 12 6.2 6.8 6.8 0 0 0 5.3 13v.4L3 14.7l1.8.9v1.6A2.3 2.3 0 0 0 7.1 19.5h.6v-1.8h3.6v1.8h1a2 2 0 0 0 2-2v-1a6.7 6.7 0 0 0 2-2.8h1.2l.9-2.7h-2Z" />
+      <circle cx="15.6" cy="10.4" r=".5" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
+
+// Cumulative running total over time, oldest → newest, starting from ৳0 —
+// a real growth curve built from each entry's created_at, not fabricated
+// sample data. Always at least 2 points (a leading 0) so a single entry
+// still draws a line instead of a dot.
+function buildSavingsSpark(items) {
+  const sorted = [...items].sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+  let running = 0
+  const values = [0, ...sorted.map(i => { running += Number(i.amount); return running })]
+  const w = 130, h = 46
+  const max = Math.max(...values, 1)
+  const stepX = values.length > 1 ? w / (values.length - 1) : 0
+  const pts = values.map((v, i) => ({ x: i * stepX, y: h - (v / max) * (h - 6) - 2 }))
+  const line = pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x},${p.y}`).join(' ')
+  const area = `${line} L ${pts[pts.length - 1].x},${h} L 0,${h} Z`
+  return { line, area, w, h, end: pts[pts.length - 1] }
+}
+
 export default function Savings() {
   const { user } = useAuth()
+  const { deleteWithUndo } = useUndoableDelete()
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -82,14 +112,29 @@ export default function Savings() {
     setEditing(null)
   }
 
-  async function handleDelete(id) {
-    setItems(prev => prev.filter(i => i.id !== id))
-    const { error: err } = await deleteSaving(id)
-    if (err) { setError(err.message); fetchItems() }
+  function handleDelete(item) {
+    const snapshot = items
+    deleteWithUndo({
+      message: `Deleted "${item.label}"`,
+      remove: () => setItems(prev => prev.filter(i => i.id !== item.id)),
+      commit: async () => {
+        const { error: err } = await deleteSaving(item.id)
+        if (err) { setError(err.message); fetchItems() }
+      },
+      restore: () => setItems(snapshot),
+    })
   }
 
   const total = items.reduce((s, i) => s + Number(i.amount), 0)
   const canAdd = !!label.trim() && !!amount && parseFloat(amount) >= 0
+
+  const now = new Date()
+  const thisMonthDelta = items.reduce((s, i) => {
+    const d = new Date(i.created_at)
+    const inThisMonth = d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth()
+    return inThisMonth ? s + Number(i.amount) : s
+  }, 0)
+  const spark = items.length > 0 ? buildSavingsSpark(items) : null
 
   return (
     <main className="min-h-screen px-5 sm:px-8 pt-6 sm:pt-10 pb-28 md:pb-10 max-w-2xl mx-auto fade-up">
@@ -175,12 +220,43 @@ export default function Savings() {
         </div>
       ) : items.length === 0 ? (
         <div className="card py-16 text-center">
-          <p className="text-4xl mb-3">🐷</p>
+          <div className="glyph-teal" style={{ margin: '0 auto 14px' }}>
+            <PiggyIcon />
+          </div>
           <p className="text-sm" style={{ color: 'var(--n350)' }}>No savings tracked yet.</p>
           <p className="text-xs mt-1" style={{ color: 'var(--n300)' }}>Add your first entry above ↑</p>
         </div>
       ) : (
         <>
+          {/* Total, with a real cumulative-growth sparkline built from
+              each entry's own date — not sample data. */}
+          <div className="card px-5 py-4 mb-4 flex items-center justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase" style={{ color: 'var(--n300)', letterSpacing: '0.07em' }}>Total savings</p>
+              <p className="text-2xl font-extrabold tabular-nums" style={{ color: 'var(--n900)', letterSpacing: '-0.02em' }}>
+                {fmt(total)}
+              </p>
+              {thisMonthDelta > 0 && (
+                <p className="text-xs font-semibold mt-1" style={{ color: 'var(--success)' }}>
+                  ↑ {fmt(thisMonthDelta)} this month
+                </p>
+              )}
+            </div>
+            {spark && (
+              <svg width={spark.w} height={spark.h} viewBox={`0 0 ${spark.w} ${spark.h}`} style={{ flexShrink: 0 }}>
+                <defs>
+                  <linearGradient id="savings-spark-fill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#0891b2" stopOpacity=".38" />
+                    <stop offset="100%" stopColor="#0891b2" stopOpacity="0" />
+                  </linearGradient>
+                </defs>
+                <path d={spark.area} fill="url(#savings-spark-fill)" />
+                <path d={spark.line} fill="none" stroke="#0891b2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                <circle cx={spark.end.x} cy={spark.end.y} r="3.5" fill="var(--surface)" stroke="#0891b2" strokeWidth="2" />
+              </svg>
+            )}
+          </div>
+
           <div className="card overflow-hidden mb-4">
             <ul>
               {items.map((item, i) => (
@@ -230,9 +306,8 @@ export default function Savings() {
                   ) : (
                     /* normal row */
                     <div className="row-hover flex items-center gap-3 px-4 sm:px-5 py-3.5">
-                      <div className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-lg"
-                        style={{ backgroundColor: 'var(--surface-2)' }}>
-                        🐷
+                      <div className="glyph-teal">
+                        <PiggyIcon />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold truncate" style={{ color: 'var(--n900)' }}>{item.label}</p>
@@ -249,21 +324,13 @@ export default function Savings() {
                             color: 'var(--n500)', fontSize: 12, cursor: 'pointer',
                             display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                           }}>✎</button>
-                        <button onClick={() => handleDelete(item.id)} className="btn-delete" title="Delete">×</button>
+                        <button onClick={() => handleDelete(item)} className="btn-delete" title="Delete">×</button>
                       </div>
                     </div>
                   )}
                 </li>
               ))}
             </ul>
-          </div>
-
-          {/* Total footer */}
-          <div className="card px-5 py-4 flex items-center justify-between">
-            <span className="text-sm font-semibold" style={{ color: 'var(--n500)' }}>Total savings</span>
-            <span className="text-2xl font-extrabold tabular-nums" style={{ color: 'var(--n900)', letterSpacing: '-0.02em' }}>
-              {fmt(total)}
-            </span>
           </div>
         </>
       )}

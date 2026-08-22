@@ -24,9 +24,14 @@ export default function BucketCard({ view, used = 0, cap = null, entries = [], o
   return (
     <button
       onClick={onOpen}
-      className="card tile-press lift text-left p-5 flex flex-col w-full"
-      style={{ minHeight: 168 }}
+      className="card card-frost tile-press lift text-left p-5 flex flex-col w-full"
+      style={{ minHeight: 168, position: 'relative', overflow: 'hidden' }}
     >
+      <div className="nightstand-blobs" aria-hidden="true">
+        <div className="blob" style={{ width: 160, height: 160, background: color, top: -50, right: -50 }} />
+        <div className="blob" style={{ width: 130, height: 130, background: '#4a48c9', bottom: -60, left: -40 }} />
+      </div>
+      <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
       <div className="flex items-start gap-3 mb-3">
         <span className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
           style={{
@@ -90,6 +95,7 @@ export default function BucketCard({ view, used = 0, cap = null, entries = [], o
             ))}
           </ul>
         )}
+      </div>
       </div>
     </button>
   )

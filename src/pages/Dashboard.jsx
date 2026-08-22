@@ -272,7 +272,13 @@ export default function Dashboard() {
 
       {/* Hero ring */}
       <Reveal className="mb-4">
-        <div className="card p-8 flex flex-col items-center">
+        <div className="card card-frost p-8 flex flex-col items-center" style={{ position: 'relative', overflow: 'hidden' }}>
+          <div className="nightstand-blobs" aria-hidden="true">
+            <div className="blob" style={{ width: 260, height: 260, background: '#4a48c9', top: -80, left: -70 }} />
+            <div className="blob" style={{ width: 220, height: 220, background: ringColor, top: 30, right: -70 }} />
+            <div className="blob" style={{ width: 220, height: 220, background: '#b8862e', bottom: -90, left: 40 }} />
+          </div>
+          <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
           <BudgetRing fraction={usedFraction} color={ringColor}>
             <span className="tabular-nums leading-none"
               style={{ fontSize: heroSize, fontWeight: 700, color: overBudget ? 'var(--danger)' : 'var(--n900)', letterSpacing: '-0.03em', whiteSpace: 'nowrap' }}>
@@ -317,6 +323,7 @@ export default function Dashboard() {
             style={{ color: 'var(--n300)', background: 'none', border: 'none', cursor: 'pointer' }}>
             Reset this month
           </button>
+          </div>
         </div>
       </Reveal>
 

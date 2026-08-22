@@ -530,3 +530,19 @@ html { scroll-behavior: smooth; }
   letter-spacing: 0.02em;
   font-variant-numeric: tabular-nums;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Frosted hero background — from the "Nightstand" preview. Just the
+   blurred color blobs + translucent card, kept separate from the rest of
+   that direction (no gold accent, no month strip, no icon changes).
+   ═══════════════════════════════════════════════════════════════════════ */
+.nightstand-blobs { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; border-radius: inherit; }
+.nightstand-blobs .blob { position: absolute; border-radius: 50%; filter: blur(70px); opacity: .28; }
+:root[data-theme="light"] .nightstand-blobs .blob { opacity: .14; }
+
+.card-frost {
+  background: color-mix(in srgb, var(--surface) 70%, transparent) !important;
+  background-image: none !important;
+  backdrop-filter: blur(26px) saturate(1.4);
+  -webkit-backdrop-filter: blur(26px) saturate(1.4);
+}

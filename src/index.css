@@ -1,44 +1,100 @@
 @import "tailwindcss";
 
+/* ═══════════════════════════════════════════════════════════════════════
+   TYPE SCALE — optical tracking
+
+   The habit that separates typeset UI from browser-default UI: letter
+   spacing is a function of size, not a per-component decision. Large type
+   is set tight — it reads loose at the tracking that suits body copy —
+   while small type is left alone. Line height tightens on the same curve,
+   because a 30px heading on default leading reads like a paragraph.
+
+   Declared as theme keys rather than plain rules so they stay *defaults*:
+   Tailwind still generates `tracking-*` / `leading-*` utilities that
+   override them, and the components already setting an explicit
+   letterSpacing inline keep winning. Those were deliberate.
+   ═══════════════════════════════════════════════════════════════════════ */
+@theme {
+  --text-xs--letter-spacing: 0em;
+  --text-sm--letter-spacing: -0.006em;
+  --text-base--letter-spacing: -0.011em;
+  --text-lg--letter-spacing: -0.015em;
+
+  --text-xl--letter-spacing: -0.019em;
+  --text-xl--line-height: 1.25;
+
+  --text-2xl--letter-spacing: -0.023em;
+  --text-2xl--line-height: 1.15;
+
+  --text-3xl--letter-spacing: -0.027em;
+  --text-3xl--line-height: 1.1;
+
+  --text-4xl--letter-spacing: -0.031em;
+  --text-4xl--line-height: 1.07;
+
+  --text-5xl--letter-spacing: -0.035em;
+  --text-5xl--line-height: 1.04;
+
+  --text-6xl--letter-spacing: -0.038em;
+  --text-6xl--line-height: 1.02;
+}
+
 /* ════════════════════════════════════════
    THEME TOKENS
-   Light values are the exact hexes the app
-   already used, so light mode is unchanged.
+
+   Light is NOT dark inverted. Dark reads by
+   emission — surfaces are lighter than the
+   page and glow. Light has to read by
+   reflection — the page sits *below* white
+   cards and they cast shadow onto it.
+
+   The old light values were the app's
+   original palette (page #fafafa under
+   #ffffff cards — 0.8% apart), so cards were
+   defined by a hard 2px grey border instead
+   of by light, and every frosted/ambient
+   effect added later was invisible on them.
+   The page is now a cooler, deeper grey so
+   white can actually lift off it.
    ════════════════════════════════════════ */
 :root, :root[data-theme="light"] {
   color-scheme: light;
 
-  --bg: #fafafa;
+  /* The page recedes so white cards read as lifted panels, the way iOS
+     sets white cells on a grouped-background grey. */
+  --bg: #eef0f5;
   --surface: #ffffff;
-  --surface-2: #f5f5f5;
-  --elevated: #fafafa;
-  --track: #f0f0f0;
-  --hairline: #f2f2f2;
-  --row-hover: #f7f7f7;
+  --surface-2: #f4f5f9;
+  --elevated: #ffffff;
+  --track: #e3e6ee;
+  --hairline: #edeff4;
+  --row-hover: #f5f6fa;
 
-  --border: #ebebeb;
-  --border-2: #e5e5e5;
-  --border-3: #d8d8d8;
-  --border-soft: #ededed;
+  --border: #e4e7ef;
+  --border-2: #dce0ea;
+  --border-3: #c7ccda;
+  --border-soft: #edeff4;
 
   --ink: #111111;
   --on-ink: #ffffff;
   --ink-hover: #333333;
 
-  /* neutral text ramp — exact current values */
-  --n900: #0d0d0d;
-  --n800: #1a1a1a;
-  --n700: #333333;
-  --n600: #444444;
-  --n550: #555555;
-  --n500: #666666;
-  --n400: #888888;
-  --n350: #999999;
-  --n300: #aaaaaa;
-  --n250: #bbbbbb;
-  --n200: #cccccc;
-  --n150: #cfcfcf;
-  --placeholder: #c0c0c0;
+  /* Neutral ramp, cool-tinted to match dark's. Pure greys (#888, #999) on
+     white read as dead print; a few points of blue in the mid-greys is what
+     makes secondary text look deliberate rather than washed out. */
+  --n900: #0b0d13;
+  --n800: #171a22;
+  --n700: #2f3440;
+  --n600: #434958;
+  --n550: #545b6c;
+  --n500: #656d80;
+  --n400: #838b9e;
+  --n350: #959db2;
+  --n300: #a7aec2;
+  --n250: #b7bdcd;
+  --n200: #c7ccd9;
+  --n150: #d3d7e1;
+  --placeholder: #b5bbcb;
 
   --accent: #7c3aed;
   --success: #22c55e;
@@ -46,26 +102,39 @@
   --warn: #f59e0b;
   --blue: #3b82f6;
 
-  --font-serif: 'Fraunces', Georgia, 'Times New Roman', serif;
+  /* One definition for the UI stack — Landing/Login/Signup used to repeat
+     it inline, which is how a stack drifts out of sync during a font swap.
+       -apple-system / BlinkMacSystemFont → genuine SF Pro on Apple hardware
+       Geist                              → the loaded webfont everywhere else
+     Geist must sit ahead of system-ui: on Windows system-ui resolves to
+     Segoe UI, which would win before the webfont is ever reached. */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Geist', system-ui, sans-serif;
+  /* High-contrast editorial serif for money and titles. Didot/Bodoni first
+     for anyone who has them locally; Playfair Display is the loaded web
+     stand-in for that same look. */
+  --font-serif: 'Didot', 'Bodoni MT', 'Playfair Display', Georgia, serif;
   --font-mono: 'SF Mono', 'Cascadia Code', 'Consolas', ui-monospace, monospace;
 
   --err-bg: rgba(239,68,68,0.06);
   --err-txt: #dc2626;
   --err-border: rgba(239,68,68,0.15);
 
-  --scroll: #dcdcdc;
-  --scroll-hover: #c8c8c8;
-  --nav-bg: rgba(250,250,250,0.85);
-  --overlay-bg: rgba(250,250,250,0.82);
-  --scrim: rgba(20,20,20,0.35);
-  --focus-ring: rgba(0,0,0,0.06);
+  --scroll: #d2d6e1;
+  --scroll-hover: #bdc2d0;
+  --nav-bg: rgba(238,240,245,0.82);
+  --overlay-bg: rgba(238,240,245,0.86);
+  --scrim: rgba(16,20,32,0.38);
+  --focus-ring: rgba(16,24,40,0.08);
 
-  --shadow-card: 0 1px 2px rgba(0,0,0,0.03), 0 4px 16px rgba(0,0,0,0.04);
-  --shadow-pop: 0 2px 4px rgba(0,0,0,0.04), 0 12px 40px rgba(0,0,0,0.08);
-  --shadow-modal: 0 20px 60px rgba(0,0,0,0.18);
-  --shadow-toast: 0 12px 40px rgba(0,0,0,0.25);
-  --shadow-float: 0 8px 28px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.06);
-  --shadow-float-strong: 0 12px 40px rgba(0,0,0,0.28), 0 4px 12px rgba(0,0,0,0.12);
+  /* Tinted toward the page's blue rather than neutral black — a pure-black
+     shadow on a cool grey turns muddy. Deeper than before because depth is
+     the only cue a light card has once the heavy border comes off. */
+  --shadow-card: 0 1px 2px rgba(16,24,40,0.04), 0 8px 24px -8px rgba(16,24,40,0.10);
+  --shadow-pop: 0 2px 6px rgba(16,24,40,0.06), 0 16px 44px -12px rgba(16,24,40,0.18);
+  --shadow-modal: 0 24px 70px -12px rgba(16,24,40,0.28);
+  --shadow-toast: 0 12px 40px rgba(16,24,40,0.28);
+  --shadow-float: 0 8px 28px -6px rgba(16,24,40,0.16), 0 2px 8px rgba(16,24,40,0.06);
+  --shadow-float-strong: 0 14px 44px -8px rgba(16,24,40,0.30), 0 4px 12px rgba(16,24,40,0.12);
 
   --tooltip-bg: #ffffff;
   --shadow-tooltip: 0 8px 32px rgba(0,0,0,0.12);
@@ -229,6 +298,13 @@ input[type="number"]::-webkit-outer-spin-button {
 :root[data-theme="dark"] .card {
   background-image: linear-gradient(145deg, #1c222b, #12161d);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 6px 20px rgba(0, 0, 0, 0.35);
+}
+/* Light cards get the opposite treatment: the 2px border was doing all the
+   work of separating card from page, which is what made light mode look
+   like wireframe boxes. With a page grey enough to sit under white, the
+   border drops to a hairline and depth comes from shadow instead. */
+:root:not([data-theme="dark"]) .card {
+  border-width: 1px;
 }
 
 /* ── Nav ── */

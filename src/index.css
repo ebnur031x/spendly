@@ -690,6 +690,106 @@ html { scroll-behavior: smooth; }
   -webkit-backdrop-filter: blur(26px) saturate(1.4);
 }
 
+/* 70%-opaque white over a near-white page is indistinguishable from solid
+   white — every frosted surface was simply invisible in light mode. Against
+   the deeper page it now actually reads as glass, and the saturation boost
+   is pushed harder because colour picked up through white tints far less
+   than through black. */
+:root:not([data-theme="dark"]) .card-frost,
+:root:not([data-theme="dark"]) .frost-page .card {
+  background: rgba(255, 255, 255, 0.78) !important;
+  backdrop-filter: blur(22px) saturate(1.35);
+  -webkit-backdrop-filter: blur(22px) saturate(1.35);
+  border-color: rgba(255, 255, 255, 0.75);
+  box-shadow: 0 1px 2px rgba(16,24,40,0.04), 0 10px 30px -10px rgba(16,24,40,0.14);
+}
+
+/* App-wide version: <AmbientBackground /> is mounted once in App's
+   <Protected> shell, and a page opts its cards into the glass treatment by
+   putting this class on its <main> — every .card then picks it up
+   automatically, so pages don't need each card hand-edited.
+
+   The blob layer must be viewport-fixed, not page-relative: an absolute
+   layer stretches to the full scroll height, so on a long page (many
+   expenses, many day types) the blobs sit against that huge height and
+   drift away from the cards — a glow stranded in empty space at the
+   bottom, and nothing behind the middle of the page.
+
+   That's also why it lives in the shell rather than inside a page: every
+   <main> carries `fade-up`, and its animation leaves a `transform` in
+   place. A transformed ancestor becomes the containing block for fixed
+   descendants, which silently turns "fixed to the viewport" back into
+   "stretched over the whole document" — the exact bug this avoids. */
+.frost-page { position: relative; }
+.page-ambient { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+/* The app's content column is max-w-2xl and centred, so blobs pinned to the
+   window edges glow either side of the content and never behind it on a
+   wide screen. This tracks the column instead, and falls back to full
+   width on phones. */
+.ambient-col { position: absolute; top: 0; bottom: 0; left: 0; right: 0; max-width: 860px; margin-inline: auto; }
+.page-ambient .blob { position: absolute; border-radius: 50%; filter: blur(70px); opacity: .22; }
+/* Light mode can't just reuse dark's recipe at a different opacity.
+   Alpha-blending a colour over white *desaturates* it: purple at 13% on a
+   near-white page is pale lavender, and turning the opacity up makes it
+   chalkier, not richer — the page goes candy-coloured before it ever gets
+   deep. Dark gets depth for free because adding colour to black raises
+   chroma.
+
+   Multiply behaves like pigment on paper instead. White stays white, and
+   where a blob sits the page takes on real saturated colour, so light gets
+   the same sense of a lit background that dark has. It needs an opaque
+   backdrop of its own to multiply against, because .page-ambient is a
+   stacking context (fixed + z-index) — hence painting the page colour on
+   the layer itself. */
+:root:not([data-theme="dark"]) .page-ambient { background: var(--bg); }
+:root:not([data-theme="dark"]) .page-ambient .blob {
+  opacity: .40;
+  filter: blur(100px);
+  mix-blend-mode: multiply;
+}
+.frost-page .card {
+  position: relative;
+  z-index: 1;
+  background: color-mix(in srgb, var(--surface) 70%, transparent) !important;
+  background-image: none !important;
+  backdrop-filter: blur(26px) saturate(1.4);
+  -webkit-backdrop-filter: blur(26px) saturate(1.4);
+}
+
+/* App bars — frosted glass, from the Nightstand reference:
+     background: rgba(14,13,16,.72); backdrop-filter: blur(28px) saturate(1.5)
+   Both bars were opaque panels before, which meant every screen's ambient
+   background stopped dead in a hard line at the top and bottom of the
+   viewport. Glass lets the page keep going underneath them.
+
+   One recipe, two edges: .bar-frost carries the glass, and the -top /
+   -bottom modifier picks which side gets the hairline. */
+.bar-frost {
+  backdrop-filter: blur(28px) saturate(1.5);
+  -webkit-backdrop-filter: blur(28px) saturate(1.5);
+}
+.bar-frost-top { border-bottom: 1px solid var(--hairline); }
+.bar-frost-bottom { border-top: 1px solid var(--hairline); }
+
+:root[data-theme="dark"] .bar-frost { background: rgba(14, 13, 16, 0.72); }
+:root[data-theme="dark"] .bar-frost-top { border-bottom-color: rgba(244, 241, 234, 0.08); }
+:root[data-theme="dark"] .bar-frost-bottom { border-top-color: rgba(244, 241, 234, 0.08); }
+
+:root:not([data-theme="dark"]) .bar-frost { background: rgba(255, 255, 255, 0.72); }
+:root:not([data-theme="dark"]) .bar-frost-top { border-bottom-color: rgba(16, 24, 40, 0.07); }
+:root:not([data-theme="dark"]) .bar-frost-bottom { border-top-color: rgba(16, 24, 40, 0.07); }
+
+/* Tab captions. Smaller and tighter than .eyebrow — 9px/.12em against the
+   eyebrow's 10.5px/.2em — because four of them have to sit under 24px icons
+   without the words colliding. */
+.tab-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
 /* teal squircle icon — Savings list, replaces the old 🐷 emoji */
 .glyph-teal {
   width: 40px; height: 40px; border-radius: 26%; flex-shrink: 0;

@@ -19,12 +19,8 @@ export default function BottomNav() {
 
   return (
     <nav
-      className="md:hidden fixed bottom-0 left-0 right-0 z-40 flex items-stretch"
-      style={{
-        background: 'var(--surface)',
-        borderTop: '1px solid var(--border)',
-        paddingBottom: 'env(safe-area-inset-bottom)',
-      }}
+      className="md:hidden fixed bottom-0 left-0 right-0 z-40 flex items-stretch bar-frost bar-frost-bottom"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
       <Tab to={hrefFor('/dashboard')} label="Home" active={pathname === '/dashboard'} Icon={HomeIcon} />
       <Tab to="/daily" label="Daily" active={pathname === '/daily'} Icon={ReceiptIcon} />
@@ -50,67 +46,66 @@ export default function BottomNav() {
   )
 }
 
+/* The reference marks the current tab with colour alone — the icons keep one
+   stroke weight and the caption keeps one weight. Swapping stroke width and
+   font weight on tap (what this did before) makes the row visibly reflow as
+   you move between tabs. */
 function Tab({ to, label, active, Icon }) {
   return (
     <Link
       to={to}
-      className="flex-1 flex flex-col items-center justify-center gap-1"
+      className="flex-1 flex flex-col items-center justify-center"
       style={{
         minHeight: 58,
+        gap: 3,
         color: active ? 'var(--ink)' : 'var(--n350)',
         textDecoration: 'none',
-        transition: 'color 0.15s, transform 0.15s',
-        transform: active ? 'translateY(-1px)' : 'none',
+        transition: 'color 0.18s',
       }}
     >
-      <Icon active={active} />
-      <span style={{ fontSize: 10.5, fontWeight: active ? 700 : 500, letterSpacing: '-0.01em' }}>{label}</span>
+      <Icon />
+      <span className="tab-label">{label}</span>
     </Link>
   )
 }
 
-function HomeIcon({ active }) {
+/* One stroke recipe for all four — 24px, 1.8 weight, rounded caps — the same
+   spec the shared icon set uses, so the tab bar reads as part of the system
+   rather than its own drawing style. */
+function TabIcon({ children }) {
   return (
-    <svg width="23" height="23" viewBox="0 0 24 24" fill="none">
-      <path d="M4 11 12 4l8 7" stroke="currentColor" strokeWidth={active ? 2.3 : 1.9} strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M5.5 9.8V19a1 1 0 0 0 1 1H10v-5.5h4V20h3.5a1 1 0 0 0 1-1V9.8"
-        stroke="currentColor" strokeWidth={active ? 2.3 : 1.9} strokeLinecap="round" strokeLinejoin="round"
-        fill={active ? 'currentColor' : 'none'} fillOpacity={active ? 0.14 : 0} />
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      {children}
     </svg>
   )
 }
 
-function ReceiptIcon({ active }) {
+function HomeIcon() {
+  return <TabIcon><path d="M3 11l9-8 9 8" /><path d="M5 10v10h14V10" /></TabIcon>
+}
+
+function ReceiptIcon() {
   return (
-    <svg width="23" height="23" viewBox="0 0 24 24" fill="none">
-      <path d="M6.5 3h11v17.2l-2.3-1.4-2 1.4-2.2-1.4-2 1.4-2.5-1.4V3Z"
-        stroke="currentColor" strokeWidth={active ? 2.2 : 1.9} strokeLinejoin="round"
-        fill={active ? 'currentColor' : 'none'} fillOpacity={active ? 0.12 : 0} />
-      <path d="M9.3 8.2h5.6M9.3 11.6h5.6M9.3 15h3.6" stroke="currentColor" strokeWidth={active ? 2.2 : 1.9} strokeLinecap="round" />
-    </svg>
+    <TabIcon>
+      <path d="M6.5 3h11v17.2l-2.3-1.4-2 1.4-2.2-1.4-2 1.4-2.5-1.4V3Z" />
+      <path d="M9.3 8.6h5.4M9.3 12h5.4M9.3 15.4h3.4" />
+    </TabIcon>
   )
 }
 
-function SearchIcon({ active }) {
-  return (
-    <svg width="23" height="23" viewBox="0 0 24 24" fill="none">
-      <circle cx="10.5" cy="10.5" r="6.5" stroke="currentColor" strokeWidth={active ? 2.3 : 1.9}
-        fill={active ? 'currentColor' : 'none'} fillOpacity={active ? 0.12 : 0} />
-      <path d="M19.5 19.5 15 15" stroke="currentColor" strokeWidth={active ? 2.3 : 1.9} strokeLinecap="round" />
-    </svg>
-  )
+function SearchIcon() {
+  return <TabIcon><circle cx="11" cy="11" r="6.5" /><path d="m16 16 4.5 4.5" /></TabIcon>
 }
 
-function PiggyIcon({ active }) {
+function PiggyIcon() {
   return (
-    <svg width="23" height="23" viewBox="0 0 24 24" fill="none">
-      <ellipse cx="10" cy="13" rx="6" ry="5" stroke="currentColor" strokeWidth={active ? 2.2 : 1.9}
-        fill={active ? 'currentColor' : 'none'} fillOpacity={active ? 0.12 : 0} />
-      <path d="M16 13c1.1 0 2-.9 2-2s-.9-2-2-2" stroke="currentColor" strokeWidth={active ? 2.2 : 1.9} strokeLinecap="round" />
-      <path d="M10 8V6" stroke="currentColor" strokeWidth={active ? 2.2 : 1.9} strokeLinecap="round" />
-      <path d="M7.5 17.5 6 20M12.5 17.5 14 20" stroke="currentColor" strokeWidth={active ? 2 : 1.7} strokeLinecap="round" />
-      <circle cx="8" cy="13" r="0.8" fill="currentColor" />
-    </svg>
+    <TabIcon>
+      <ellipse cx="10.5" cy="13" rx="6.5" ry="5.2" />
+      <path d="M17 13c1.1 0 2-.9 2-2s-.9-2-2-2" />
+      <path d="M10.5 7.8V6" />
+      <path d="M7.8 17.8 6.4 20M13.2 17.8 14.6 20" />
+      <path d="M8.2 12.6h.01" />
+    </TabIcon>
   )
 }
-

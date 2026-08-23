@@ -538,7 +538,11 @@ html { scroll-behavior: smooth; }
    ═══════════════════════════════════════════════════════════════════════ */
 .nightstand-blobs { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; border-radius: inherit; }
 .nightstand-blobs .blob { position: absolute; border-radius: 50%; filter: blur(70px); opacity: .28; }
-:root[data-theme="light"] .nightstand-blobs .blob { opacity: .14; }
+/* The hero's own blobs sit inside a translucent card, so they can't use the
+    multiply trick below (no opaque backdrop to multiply against inside that
+    stacking context). Straight alpha, but pushed — the card is glass over
+    the page wash, so this only has to add the last bit of colour. */
+:root:not([data-theme="dark"]) .nightstand-blobs .blob { opacity: .34; filter: blur(85px); }
 
 .card-frost {
   background: color-mix(in srgb, var(--surface) 70%, transparent) !important;

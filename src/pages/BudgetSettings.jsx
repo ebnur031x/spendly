@@ -110,13 +110,14 @@ export default function BudgetSettings() {
   }
 
   return (
-    <main className="min-h-screen px-5 sm:px-8 pt-6 sm:pt-10 pb-28 md:pb-10 max-w-2xl mx-auto fade-up">
+    <main className="min-h-screen px-5 sm:px-8 pt-6 sm:pt-10 pb-28 md:pb-10 max-w-2xl mx-auto fade-up frost-page">
       <Link to={month === monthKey() ? '/dashboard' : `/dashboard?month=${month}`}
         className="text-xs font-semibold inline-block mb-4" style={{ color: 'var(--n400)' }}>← Overview</Link>
 
       <div className="flex items-center justify-between gap-3 mb-1">
-        <h1 className="text-2xl font-extrabold tracking-tight" style={{ color: 'var(--n900)', letterSpacing: '-0.03em' }}>
-          {monthLabel(month)} budget
+        <h1 className="flex items-baseline gap-x-2 gap-y-0.5 flex-wrap min-w-0">
+          <MonthTitle month={month} size={30} />
+          <span className="eyebrow flex-shrink-0" style={{ letterSpacing: '0.18em', whiteSpace: 'nowrap' }}>budget</span>
         </h1>
         <MonthNav month={month} onChange={goToMonth} />
       </div>

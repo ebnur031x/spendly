@@ -15,6 +15,7 @@ import AllTransactions from './pages/AllTransactions'
 import Savings from './pages/Savings'
 import Navbar from './components/Navbar'
 import BottomNav from './components/BottomNav'
+import AmbientBackground from './components/AmbientBackground'
 
 // Shared shell for signed-in screens: top nav + page + bottom nav.
 // Navbar carries the theme toggle on desktop. Mobile's toggle lives inline
@@ -26,6 +27,9 @@ import BottomNav from './components/BottomNav'
 function Protected({ children }) {
   return (
     <ProtectedRoute>
+      {/* First child so it paints beneath everything, and outside any
+          page's transformed <main> so it stays anchored to the viewport. */}
+      <AmbientBackground />
       <Navbar />
       {children}
       <BottomNav />

@@ -137,12 +137,12 @@ export default function Savings() {
   const spark = items.length > 0 ? buildSavingsSpark(items) : null
 
   return (
-    <main className="min-h-screen px-5 sm:px-8 pt-6 sm:pt-10 pb-28 md:pb-10 max-w-2xl mx-auto fade-up">
+    <main className="min-h-screen px-5 sm:px-8 pt-6 sm:pt-10 pb-28 md:pb-10 max-w-2xl mx-auto fade-up frost-page">
 
       {/* Header */}
       <div className="flex items-end justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight" style={{ color: 'var(--n900)', letterSpacing: '-0.04em' }}>
+          <h1 className="text-3xl font-bold tracking-tight" style={{ color: 'var(--n900)', letterSpacing: '-0.04em' }}>
             Savings <span className="serif-accent">stash</span>
           </h1>
           <p className="text-sm mt-1" style={{ color: 'var(--n350)' }}>

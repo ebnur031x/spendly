@@ -207,16 +207,16 @@ export default function GroceriesDeepDive() {
   }
 
   return (
-    <main className="min-h-screen px-5 sm:px-8 pt-6 sm:pt-10 pb-28 md:pb-10 max-w-2xl mx-auto fade-up">
+    <main className="min-h-screen px-5 sm:px-8 pt-6 sm:pt-10 pb-28 md:pb-10 max-w-2xl mx-auto fade-up frost-page">
       <Link to="/groceries" className="text-xs font-semibold inline-block mb-4" style={{ color: 'var(--n400)' }}>
         ← Groceries
       </Link>
 
       <div className="flex items-start gap-3 mb-1">
         <span className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0"
-          style={{ background: `${groceries.color}22`, fontSize: 21 }}>{groceries.icon}</span>
+          style={{ background: `${groceries.color}22`, fontSize: 21, color: groceries.color }}>{groceries.icon}</span>
         <div className="min-w-0">
-          <h1 className="text-2xl font-extrabold tracking-tight" style={{ color: 'var(--n900)', letterSpacing: '-0.03em' }}>
+          <h1 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--n900)', letterSpacing: '-0.03em' }}>
             Groceries deep-dive
           </h1>
           <p className="text-sm mt-0.5" style={{ color: 'var(--n350)' }}>

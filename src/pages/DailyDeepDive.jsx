@@ -469,7 +469,7 @@ export default function DailyDeepDive() {
   }
 
   return (
-    <main className="min-h-screen px-5 sm:px-8 pt-6 sm:pt-10 pb-28 md:pb-10 max-w-2xl mx-auto fade-up">
+    <main className="min-h-screen px-5 sm:px-8 pt-6 sm:pt-10 pb-28 md:pb-10 max-w-2xl mx-auto fade-up frost-page">
       <Link to={isCurrentMonth ? '/budget-settings' : `/budget-settings?month=${month}`}
         className="text-xs font-semibold inline-block mb-4" style={{ color: 'var(--n400)' }}>
         ← Budget Settings

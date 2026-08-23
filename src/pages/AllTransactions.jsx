@@ -103,10 +103,10 @@ export default function AllTransactions() {
   }, [filtered])
 
   return (
-    <main className="min-h-screen px-5 sm:px-8 pt-6 sm:pt-10 pb-28 md:pb-10 max-w-2xl mx-auto fade-up">
+    <main className="min-h-screen px-5 sm:px-8 pt-6 sm:pt-10 pb-28 md:pb-10 max-w-2xl mx-auto fade-up frost-page">
       {/* Header */}
       <div className="mb-5">
-        <h1 className="text-2xl font-extrabold tracking-tight" style={{ color: 'var(--n900)', letterSpacing: '-0.03em' }}>
+        <h1 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--n900)', letterSpacing: '-0.03em' }}>
           All <span className="serif-accent">transactions</span>
         </h1>
         <p className="text-sm mt-0.5" style={{ color: 'var(--n350)' }}>

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { money0 } from '../lib/format'
 import { DAY_TYPE_COLORS, createDayType, updateDayType, deleteDayType } from '../lib/dayTypes'
+import { useUndoableDelete } from '../hooks/useUndoableDelete'
 import ColorSwatches from './ColorSwatches'
 
 // Manage day types: list existing, add/edit (name, color, optional
@@ -10,6 +11,7 @@ import ColorSwatches from './ColorSwatches'
 export default function DayTypesModal({ userId, dayTypes, onClose, onChanged }) {
   const [items, setItems] = useState(dayTypes)
   const [editing, setEditing] = useState(null) // null | 'new' | dayType
+  const { deleteWithUndo } = useUndoableDelete()
 
   function afterSave(row, isNew) {
     setItems(prev => (isNew ? [...prev, row] : prev.map(d => (d.id === row.id ? row : d))))
@@ -17,12 +19,20 @@ export default function DayTypesModal({ userId, dayTypes, onClose, onChanged }) 
     onChanged?.()
   }
 
-  async function remove(id) {
-    const prev = items
-    setItems(items.filter(d => d.id !== id))
-    const { error } = await deleteDayType(id)
-    if (error) setItems(prev)
-    else onChanged?.()
+  function remove(id) {
+    const item = items.find(d => d.id === id)
+    if (!item) return
+    const snapshot = items
+    deleteWithUndo({
+      message: `Deleted "${item.name}"`,
+      remove: () => setItems(prev => prev.filter(d => d.id !== id)),
+      commit: async () => {
+        const { error } = await deleteDayType(id)
+        if (error) setItems(snapshot)
+        else onChanged?.()
+      },
+      restore: () => setItems(snapshot),
+    })
   }
 
   return createPortal(

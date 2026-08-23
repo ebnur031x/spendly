@@ -11,6 +11,7 @@ import { insertExpenses } from '../lib/expenses'
 import { bucketMeta, ensureBucketSettings, updateBucketSetting, indexSettings } from '../lib/buckets'
 import { suggestBillType } from '../lib/classify'
 import { useBucketRedirect } from '../hooks/useBucketRedirect'
+import { useUndoableDelete } from '../hooks/useUndoableDelete'
 import MiniBudgetBar, { resolveCap } from '../components/MiniBudgetBar'
 import BucketPicker from '../components/BucketPicker'
 import BucketRedirectChips from '../components/BucketRedirectChips'
@@ -63,6 +64,7 @@ export default function BucketDetail({ bucketKey }) {
   const cfg = CONFIG[key]
   const { user } = useAuth()
   const { toast } = useToast()
+  const { deleteWithUndo } = useUndoableDelete()
   const month = monthKey()
 
   const [rows, setRows] = useState([])
@@ -174,11 +176,19 @@ export default function BucketDetail({ bucketKey }) {
     setEditing(null)
   }
 
-  async function handleDelete(id) {
-    const prev = rows
-    setRows(rows.filter(r => r.id !== id))
-    const { error: err } = await supabase.from('expenses').delete().eq('id', id)
-    if (err) { setError(err.message); setRows(prev) }
+  function handleDelete(id) {
+    const item = rows.find(r => r.id === id)
+    if (!item) return
+    const snapshot = rows
+    deleteWithUndo({
+      message: `Deleted "${item.title}"`,
+      remove: () => setRows(prev => prev.filter(r => r.id !== id)),
+      commit: async () => {
+        const { error: err } = await supabase.from('expenses').delete().eq('id', id)
+        if (err) { setError(err.message); setRows(snapshot) }
+      },
+      restore: () => setRows(snapshot),
+    })
   }
 
   function openBulkMove(group) {

@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { useUndoableDelete } from '../hooks/useUndoableDelete'
+import MonthTitle from '../components/MonthTitle'
 import { money, money0 } from '../lib/format'
 import { monthKey, monthLabel, daysInMonth, dayKey, monthDates, groupDatesByWeek } from '../lib/dates'
 import { isMissingSchema } from '../lib/schema'
@@ -67,6 +69,7 @@ function parseAllocValue(raw) {
 
 export default function DailyDeepDive() {
   const { user } = useAuth()
+  const { deleteWithUndo } = useUndoableDelete()
   const daily = bucketMeta('daily')
 
   // Re-derived on an interval rather than captured once at mount: a tab left
@@ -324,13 +327,23 @@ export default function DailyDeepDive() {
 
   // Logged days survive this (day_type_id is set null in the DB); their pill
   // just stops resolving, which the spine already renders as "no type".
-  async function handleDeleteDayType(id) {
+  function handleDeleteDayType(id) {
+    const item = dayTypes.find(dt => dt.id === id)
+    if (!item) return
     const prevDayTypes = dayTypes
     const prevAlloc = allocMap
-    setDayTypes(dayTypes.filter(dt => dt.id !== id))
-    setAllocMap(prev => { const next = { ...prev }; delete next[id]; return next })
-    const { error: err } = await deleteDayType(id)
-    if (err) { setError(err.message); setDayTypes(prevDayTypes); setAllocMap(prevAlloc) }
+    deleteWithUndo({
+      message: `Deleted "${item.name}"`,
+      remove: () => {
+        setDayTypes(prev => prev.filter(dt => dt.id !== id))
+        setAllocMap(prev => { const next = { ...prev }; delete next[id]; return next })
+      },
+      commit: async () => {
+        const { error: err } = await deleteDayType(id)
+        if (err) { setError(err.message); setDayTypes(prevDayTypes); setAllocMap(prevAlloc) }
+      },
+      restore: () => { setDayTypes(prevDayTypes); setAllocMap(prevAlloc) },
+    })
   }
 
   /* ── Default items (a day type's reusable "usually cost this" list) ── */

@@ -1,11 +1,13 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
+import MonthTitle from '../components/MonthTitle'
 import { money, money0 } from '../lib/format'
 import { dayKey, parseKey, monthKey, monthLabel, daysInMonth } from '../lib/dates'
 import { bucketMeta, ensureBucketSettings, updateBucketSetting, indexSettings } from '../lib/buckets'
 import { suggestBillType } from '../lib/classify'
 import { useBucketRedirect } from '../hooks/useBucketRedirect'
+import { useUndoableDelete } from '../hooks/useUndoableDelete'
 import { insertExpenses } from '../lib/expenses'
 import {
   listCommitmentInstances, listCommitmentTemplates, listSuggestedCommitments, addCommitmentInstance,
@@ -29,6 +31,7 @@ const editBtnStyle = {
 export default function Commitments() {
   const { user } = useAuth()
   const { toast } = useToast()
+  const { deleteWithUndo } = useUndoableDelete()
   const month = monthKey()
 
   const [instances, setInstances] = useState([])
@@ -155,11 +158,19 @@ export default function Commitments() {
     setEditing(null)
   }
 
-  async function removeInstance(id) {
-    const prev = instances
-    setInstances(instances.filter(i => i.id !== id))
-    const { error: err } = await deleteCommitment(id)
-    if (err) { setError(err.message); setInstances(prev) }
+  function removeInstance(id) {
+    const item = instances.find(i => i.id === id)
+    if (!item) return
+    const snapshot = instances
+    deleteWithUndo({
+      message: `Deleted "${item.name}"`,
+      remove: () => setInstances(prev => prev.filter(i => i.id !== id)),
+      commit: async () => {
+        const { error: err } = await deleteCommitment(id)
+        if (err) { setError(err.message); setInstances(snapshot) }
+      },
+      restore: () => setInstances(snapshot),
+    })
   }
 
   async function stopRecurring(templateId) {

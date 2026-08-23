@@ -1,8 +1,10 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { useUndoableDelete } from '../hooks/useUndoableDelete'
+import MonthTitle from '../components/MonthTitle'
 import { money, money0 } from '../lib/format'
-import { monthKey, monthLabel, dayKey, daysInMonth } from '../lib/dates'
+import { monthKey, dayKey, daysInMonth } from '../lib/dates'
 import { isMissingSchema } from '../lib/schema'
 import { bucketMeta, ensureBucketSettings, updateBucketSetting, indexSettings } from '../lib/buckets'
 import {
@@ -44,6 +46,7 @@ const MONTH_RE = /^\d{4}-\d{2}$/
 
 export default function GroceriesDeepDive() {
   const { user } = useAuth()
+  const { deleteWithUndo } = useUndoableDelete()
   const groceries = bucketMeta('groceries')
 
   const [searchParams, setSearchParams] = useSearchParams()
@@ -136,11 +139,19 @@ export default function GroceriesDeepDive() {
     }
   }
 
-  async function handleDelete(id) {
-    const prev = entries
-    setEntries(entries.filter(en => en.id !== id))
-    const { error: err } = await deleteLogItem(id)
-    if (err) { setError(err.message); setEntries(prev) }
+  function handleDelete(id) {
+    const item = entries.find(en => en.id === id)
+    if (!item) return
+    const snapshot = entries
+    deleteWithUndo({
+      message: `Deleted "${item.name}"`,
+      remove: () => setEntries(prev => prev.filter(en => en.id !== id)),
+      commit: async () => {
+        const { error: err } = await deleteLogItem(id)
+        if (err) { setError(err.message); setEntries(snapshot) }
+      },
+      restore: () => setEntries(snapshot),
+    })
   }
 
   /* ── Totals ── */

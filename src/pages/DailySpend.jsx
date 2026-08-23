@@ -10,6 +10,9 @@ import { insertExpenses } from '../lib/expenses'
 import { bucketMeta, ensureBucketSettings, indexSettings } from '../lib/buckets'
 import { suggestBillType } from '../lib/classify'
 import { useBucketRedirect } from '../hooks/useBucketRedirect'
+import { useUndoableDelete } from '../hooks/useUndoableDelete'
+import MonthTitle from '../components/MonthTitle'
+import Icon from '../components/icons'
 import { listDayTypes, seedDefaultDayTypesIfEmpty } from '../lib/dayTypes'
 import MiniBudgetBar, { resolveCap } from '../components/MiniBudgetBar'
 import BucketPicker from '../components/BucketPicker'
@@ -78,7 +81,7 @@ export default function DailySpend() {
   const [setting, setSetting] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const pendingDeletes = useRef(new Map())
+  const { deleteWithUndo } = useUndoableDelete()
 
   const todayKey = dayKey(new Date())
   const [selectedDay, setSelectedDay] = useState(todayKey)
@@ -196,22 +199,15 @@ export default function DailySpend() {
   function handleDelete(id) {
     const item = expenses.find(e => e.id === id)
     if (!item) return
-    setExpenses(prev => prev.filter(e => e.id !== id))
-    const timer = setTimeout(async () => {
-      pendingDeletes.current.delete(id)
-      const { error: err } = await supabase.from('expenses').delete().eq('id', id)
-      if (err) { setError(err.message); fetchData() }
-    }, 4200)
-    pendingDeletes.current.set(id, { item, timer })
-    toast({
-      icon: '🗑️', message: `Deleted "${item.title}"`, actionLabel: 'Undo',
-      onAction: () => {
-        const pending = pendingDeletes.current.get(id)
-        if (!pending) return
-        clearTimeout(pending.timer)
-        pendingDeletes.current.delete(id)
-        setExpenses(prev => [pending.item, ...prev].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)))
+    const snapshot = expenses
+    deleteWithUndo({
+      message: `Deleted "${item.title}"`,
+      remove: () => setExpenses(prev => prev.filter(e => e.id !== id)),
+      commit: async () => {
+        const { error: err } = await supabase.from('expenses').delete().eq('id', id)
+        if (err) { setError(err.message); fetchData() }
       },
+      restore: () => setExpenses(snapshot),
     })
   }
 
@@ -271,6 +267,35 @@ export default function DailySpend() {
         else setDailyLogs(prev => prev.map(l => l.id === log.id ? { ...l, expenses: newExps, total_spent: newTotal } : l))
       }
     }
+  }
+
+  function handleDeleteLogItemWithUndo(log, itemIndex) {
+    const snapshot = dailyLogs
+    const isWholeLog = itemIndex === -1
+    const item = isWholeLog ? null : (log.expenses || [])[itemIndex]
+    const label = isWholeLog
+      ? (dayTypes.find(d => d.id === log.day_type_id)?.name || 'Day log')
+      : (item?.label || 'Item')
+
+    deleteWithUndo({
+      message: `Deleted "${label}"`,
+      remove: () => {
+        if (isWholeLog) {
+          setDailyLogs(prev => prev.filter(l => l.id !== log.id))
+          return
+        }
+        const newExps = (log.expenses || []).filter((_, i) => i !== itemIndex)
+        const hasRemaining = newExps.some(e => e.label && Number(e.amount) > 0)
+        if (!hasRemaining) {
+          setDailyLogs(prev => prev.filter(l => l.id !== log.id))
+        } else {
+          const newTotal = newExps.reduce((s, e) => s + (Number(e.amount) || 0), 0)
+          setDailyLogs(prev => prev.map(l => l.id === log.id ? { ...l, expenses: newExps, total_spent: newTotal } : l))
+        }
+      },
+      commit: () => handleDeleteLogItem(log, itemIndex),
+      restore: () => setDailyLogs(snapshot),
+    })
   }
 
   function openEdit(exp) {

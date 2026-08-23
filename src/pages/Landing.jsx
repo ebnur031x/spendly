@@ -60,7 +60,7 @@ function TransactionCard() {
         width: 38, height: 38, borderRadius: 10,
         background: 'linear-gradient(135deg, #92400e, #78350f)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        color: '#fcd34d', fontWeight: 800, fontSize: 12, flexShrink: 0,
+        color: '#fcd34d', fontWeight: 700, fontSize: 12, flexShrink: 0,
       }}>Tr</div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontWeight: 600, fontSize: 13 }}>Pathao Ride</div>
@@ -203,7 +203,7 @@ function FeatureCard({ step, title, desc, delay }) {
       }}>
         <div style={{
           width: 40, height: 40, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 15, fontWeight: 800, color: 'var(--accent)', background: 'rgba(124,58,237,0.1)', marginBottom: 18,
+          fontSize: 15, fontWeight: 700, color: 'var(--accent)', background: 'rgba(124,58,237,0.1)', marginBottom: 18,
         }}>{step}</div>
         <h3 style={{ fontSize: 17, fontWeight: 700, color: 'var(--n900)', letterSpacing: '-0.01em', margin: '0 0 8px' }}>{title}</h3>
         <p style={{ fontSize: 14.5, color: 'var(--n400)', lineHeight: 1.6, margin: 0 }}>{desc}</p>
@@ -238,7 +238,7 @@ function BudgetShowcase() {
         </svg>
         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
           <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--n400)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Left</span>
-          <span style={{ fontSize: 26, fontWeight: 800, color: 'var(--n900)', letterSpacing: '-0.02em' }}>৳3,440</span>
+          <span style={{ fontSize: 26, fontWeight: 700, color: 'var(--n900)', letterSpacing: '-0.02em' }}>৳3,440</span>
           <span style={{ fontSize: 11, color: 'var(--n300)' }}>of ৳8,000</span>
         </div>
       </div>
@@ -283,7 +283,7 @@ export default function Landing() {
       minHeight: '100vh',
       backgroundColor: 'var(--bg)',
       color: 'var(--n800)',
-      fontFamily: 'Inter, system-ui, sans-serif',
+      fontFamily: 'var(--font-sans)',
       opacity: fading ? 0 : 1,
       transition: 'opacity 0.34s ease',
     }}>
@@ -356,7 +356,7 @@ export default function Landing() {
         <div style={{ textAlign: 'center', position: 'relative', zIndex: 4, maxWidth: 580 }}>
           <h1 style={{
             fontSize: 'clamp(52px, 7.5vw, 96px)',
-            fontWeight: 900,
+            fontWeight: 700,
             lineHeight: 1.02,
             letterSpacing: '-0.04em',
             color: 'var(--n900)',
@@ -424,7 +424,7 @@ export default function Landing() {
               textTransform: 'uppercase', color: 'var(--accent)',
               background: 'rgba(124,58,237,0.1)', padding: '6px 14px', borderRadius: 999, marginBottom: 18,
             }}>How it works</span>
-            <h2 style={{ fontSize: 'clamp(32px, 4.5vw, 44px)', fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--n900)', margin: '0 0 14px' }}>
+            <h2 style={{ fontSize: 'clamp(32px, 4.5vw, 44px)', fontWeight: 700, letterSpacing: '-0.03em', color: 'var(--n900)', margin: '0 0 14px' }}>
               Three habits. <em className="serif-accent">One dashboard.</em>
             </h2>
             <p style={{ fontSize: 16, color: 'var(--n400)', maxWidth: 480, margin: '0 auto' }}>
@@ -454,7 +454,7 @@ export default function Landing() {
               <span style={{ display: 'inline-block', fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#22c55e', marginBottom: 18 }}>
                 Budgets
               </span>
-              <h2 style={{ fontSize: 'clamp(28px, 4vw, 38px)', fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--n900)', margin: '0 0 14px' }}>
+              <h2 style={{ fontSize: 'clamp(28px, 4vw, 38px)', fontWeight: 700, letterSpacing: '-0.03em', color: 'var(--n900)', margin: '0 0 14px' }}>
                 Set it once. <em className="serif-accent">Know it daily.</em>
               </h2>
               <p style={{ fontSize: 15.5, color: 'var(--n400)', lineHeight: 1.65, margin: '0 0 22px', maxWidth: 420 }}>
@@ -487,7 +487,7 @@ export default function Landing() {
             <span style={{ display: 'inline-block', fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 18 }}>
               Built for BRAC students
             </span>
-            <h2 style={{ fontSize: 'clamp(28px, 4vw, 38px)', fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--n900)', margin: '0 0 16px' }}>
+            <h2 style={{ fontSize: 'clamp(28px, 4vw, 38px)', fontWeight: 700, letterSpacing: '-0.03em', color: 'var(--n900)', margin: '0 0 16px' }}>
               Taka in, <em className="serif-accent">taka tracked.</em>
             </h2>
             <p style={{ fontSize: 16, color: 'var(--n500)', maxWidth: 560, margin: '0 auto 32px', lineHeight: 1.65 }}>
@@ -500,7 +500,7 @@ export default function Landing() {
                 { mark: '✓', label: 'Your data, your account' },
               ].map(s => (
                 <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14.5, fontWeight: 600, color: 'var(--n700)' }}>
-                  <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--accent)' }}>{s.mark}</span>{s.label}
+                  <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--accent)' }}>{s.mark}</span>{s.label}
                 </div>
               ))}
             </div>
@@ -515,14 +515,14 @@ export default function Landing() {
             <span style={{ display: 'inline-block', fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--n400)', marginBottom: 18 }}>
               Pricing
             </span>
-            <h2 style={{ fontSize: 'clamp(28px, 4vw, 36px)', fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--n900)', margin: '0 0 28px' }}>
+            <h2 style={{ fontSize: 'clamp(28px, 4vw, 36px)', fontWeight: 700, letterSpacing: '-0.03em', color: 'var(--n900)', margin: '0 0 28px' }}>
               Free. <em className="serif-accent">Forever.</em>
             </h2>
             <div style={{
               background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 24,
               padding: '36px 32px', boxShadow: 'var(--shadow-pop)',
             }}>
-              <p style={{ fontSize: 44, fontWeight: 900, color: 'var(--n900)', letterSpacing: '-0.03em', margin: '0 0 4px' }}>৳0</p>
+              <p style={{ fontSize: 44, fontWeight: 700, color: 'var(--n900)', letterSpacing: '-0.03em', margin: '0 0 4px' }}>৳0</p>
               <p style={{ fontSize: 13, color: 'var(--n350)', margin: '0 0 26px' }}>per month, no catch</p>
               <div style={{ height: 1, background: 'var(--track)', margin: '0 0 22px' }} />
               <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 26px', display: 'flex', flexDirection: 'column', gap: 12, textAlign: 'left' }}>

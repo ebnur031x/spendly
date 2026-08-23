@@ -239,14 +239,14 @@ export default function GroceriesDeepDive() {
       <Reveal>
         <div className="card p-5 mb-4">
           <div className="flex items-center justify-between gap-3 mb-4">
-            <p className="text-xs font-semibold uppercase" style={{ color: 'var(--n400)', letterSpacing: '0.07em' }}>{monthLabel(month)}</p>
+            <MonthTitle month={month} size={22} />
             <MonthNav month={month} onChange={goToMonth} />
           </div>
 
           {/* monthly total, + a projection while the month's still open */}
           <div className={`flex items-baseline justify-between ${showProjection ? 'mb-1' : 'mb-5'}`}>
-            <span className="text-sm font-semibold" style={{ color: 'var(--n500)' }}>This month</span>
-            <span className="text-3xl font-extrabold tabular-nums" style={{ color: 'var(--n900)', letterSpacing: '-0.02em' }}>
+            <span className="eyebrow">This month</span>
+            <span className="money-serif text-3xl" style={{ color: 'var(--n900)' }}>
               {money0(monthTotal)}
             </span>
           </div>
@@ -259,7 +259,7 @@ export default function GroceriesDeepDive() {
                   based on ~{money0(weeklyAvg)}/week so far
                 </p>
               </div>
-              <span className="text-xl font-extrabold tabular-nums" style={{ color: groceries.color, letterSpacing: '-0.02em' }}>
+              <span className="data-mono text-lg font-semibold" style={{ color: groceries.color }}>
                 ~{money0(projectedMonth)}
               </span>
             </div>
@@ -282,7 +282,7 @@ export default function GroceriesDeepDive() {
             </button>
           </form>
           <div className="flex items-center justify-between mb-5 px-1">
-            <span className="text-xs font-semibold uppercase" style={{ color: 'var(--n400)', letterSpacing: '0.06em' }}>Date</span>
+            <span className="eyebrow" style={{ color: 'var(--n400)' }}>Date</span>
             <input type="date" value={date} max={dayKey(new Date())}
               onChange={e => e.target.value && setDate(e.target.value)}
               className="text-xs font-semibold rounded-full px-3 py-1.5 cursor-pointer"
@@ -330,7 +330,7 @@ export default function GroceriesDeepDive() {
                   <span className="text-xs font-bold uppercase" style={{ color: 'var(--n400)', letterSpacing: '0.06em' }}>
                     {week.label}
                   </span>
-                  <span className="text-xs font-semibold tabular-nums" style={{ color: 'var(--n400)' }}>{money0(week.total)}</span>
+                  <span className="data-mono text-xs font-semibold" style={{ color: 'var(--n400)' }}>{money0(week.total)}</span>
                 </div>
                 <div className="card overflow-hidden">
                   <ul>

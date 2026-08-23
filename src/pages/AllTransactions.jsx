@@ -129,7 +129,7 @@ export default function AllTransactions() {
         <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1 mb-3">
           <FilterChip label="All" active={bucketFilter === 'all'} onClick={() => setBucketFilter('all')} />
           {BUCKETS.map(b => (
-            <FilterChip key={b.key} label={b.name} icon={b.icon} color={b.color}
+            <FilterChip key={b.key} label={b.name} icon={bucketMeta(b.key).icon} color={b.color}
               active={bucketFilter === b.key} onClick={() => setBucketFilter(b.key)} />
           ))}
         </div>
@@ -160,10 +160,10 @@ export default function AllTransactions() {
       {/* Summary */}
       <Reveal delay={40}>
         <div className="card px-5 py-4 flex items-center justify-between mb-4">
-          <span className="text-xs" style={{ color: 'var(--n400)' }}>
+          <span className="data-mono text-xs" style={{ color: 'var(--n400)' }}>
             {filtered.length} {filtered.length === 1 ? 'entry' : 'entries'}
           </span>
-          <span className="text-lg font-extrabold tabular-nums" style={{ color: 'var(--n900)', letterSpacing: '-0.02em' }}>
+          <span className="money-serif text-xl" style={{ color: 'var(--n900)' }}>
             {money0(total)}
           </span>
         </div>
@@ -192,8 +192,8 @@ export default function AllTransactions() {
               return (
                 <div key={date}>
                   <div className="flex items-center justify-between mb-2 px-1">
-                    <span className="text-xs font-bold uppercase" style={{ color: 'var(--n400)', letterSpacing: '0.06em' }}>{fmtDate(date)}</span>
-                    <span className="text-xs font-semibold tabular-nums" style={{ color: 'var(--n400)' }}>{money0(subtotal)}</span>
+                    <span className="eyebrow" style={{ color: 'var(--n400)' }}>{fmtDate(date)}</span>
+                    <span className="data-mono text-xs font-semibold" style={{ color: 'var(--n400)' }}>{money0(subtotal)}</span>
                   </div>
                   <div className="card overflow-hidden">
                     <ul>

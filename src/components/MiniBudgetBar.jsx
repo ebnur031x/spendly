@@ -48,10 +48,10 @@ export default function MiniBudgetBar({ used = 0, cap = null, color = '#22c55e',
         <div className="bar-fill h-full rounded-full" style={{ width: `${Math.max(pct, used > 0 ? 3 : 0)}%`, background: barColor }} />
       </div>
       <div className="flex items-center justify-between mt-1.5" style={{ fontSize: compact ? '0.68rem' : '0.72rem' }}>
-        <span className="tabular-nums" style={{ color: 'var(--n400)' }}>
+        <span className="data-mono" style={{ color: 'var(--n400)' }}>
           {money0(used)} <span style={{ color: 'var(--n300)' }}>of {money0(cap)}</span>
         </span>
-        <span className="tabular-nums font-semibold" style={{ color: over ? 'var(--err-txt)' : 'var(--n500)' }}>
+        <span className="data-mono font-semibold" style={{ color: over ? 'var(--err-txt)' : 'var(--n500)' }}>
           {over ? `${money0(used - cap)} over` : `${money0(cap - used)} left`}
         </span>
       </div>

@@ -152,10 +152,14 @@ html { overflow-x: hidden; }
 body {
   background-color: var(--bg);
   color: var(--n800);
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: var(--font-sans);
   margin: 0;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Kept for SF Pro, which carries a real Text/Display split and switches
+     cuts by size on its own. Geist has no optical-size axis, so this is
+     simply inert there — the tracking scale below does that work instead. */
+  font-optical-sizing: auto;
 }
 
 #root { min-height: 100vh; }
@@ -511,24 +515,83 @@ html { scroll-behavior: smooth; }
 .tile-press:active { transform: scale(0.97); }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   SpendingTrend chart type styles — money in a serif, data captions in
-   mono, so the pie/line/bar view reads distinctly from the rest of the UI.
+   THREE TYPE ROLES
+
+   Money reads in a high-contrast editorial serif, data in mono, names and
+   sentences in the sans UI face. The contrast between the three is the
+   point — a figure should look like a *figure*, a label like machine
+   output, a name like language.
    ═══════════════════════════════════════════════════════════════════════ */
+
+/* Money. Italic serif for the numerals; the currency sign is handled
+   separately below. */
 .money-serif {
   font-family: var(--font-serif);
-  /* Not italic: Fraunces has no italic glyph for ৳ (Bengali Taka sign), so
-     the browser falls back to a different font for just that character —
-     under an italic skew, that fallback's ৳ renders with a diagonal stroke
-     that reads as a line through the whole amount. Upright serif avoids it
-     while still keeping the "editorial" contrast against the sans UI type. */
+  font-style: italic;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  /* ::first-letter only applies to block containers, and these figures are
+     nearly all inline <span>s. */
+  display: inline-block;
+}
+
+/* ৳ (Bengali Taka) is absent from Playfair, Didot and Bodoni alike — every
+   Latin serif substitutes a different face for it, which the browser then
+   synthetically slants to satisfy the italic. That fake slant puts a
+   diagonal stroke through the symbol that reads as the whole amount being
+   struck out. Setting the symbol upright in the UI face sidesteps the
+   substitution entirely, and is the better treatment regardless: the sign
+   stays quiet and small, the numerals carry the expression. The symbol is
+   always the leading character, so ::first-letter targets it exactly. */
+.money-serif::first-letter {
+  font-family: var(--font-sans);
   font-style: normal;
   font-weight: 600;
-  font-variant-numeric: tabular-nums;
+  font-size: 0.7em;
+  margin-right: 0.05em;
 }
+
+/* Data — counts, ratios, deltas, anything machine-produced. */
 .data-mono {
   font-family: var(--font-mono);
   letter-spacing: 0.02em;
   font-variant-numeric: tabular-nums;
+}
+
+/* Month names — the masthead role. Display serif in italic, with the year
+   as a small mono superscript so "August" carries the line and the digits
+   stay out of the way. Replaces both the bold-sans and the mono-caps
+   ("AUGUST 2026") treatments, which read as machine output. */
+.month-title {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  color: var(--n900);
+  white-space: nowrap;
+}
+.month-title .yr {
+  font-family: var(--font-mono);
+  font-style: normal;
+  font-weight: 500;
+  /* Relative to the title, so it tracks every size the title is used at. */
+  font-size: 0.3em;
+  letter-spacing: 0.14em;
+  color: var(--n350);
+  vertical-align: super;
+  margin-left: 0.2em;
+}
+
+/* Micro-labels above a value or section. Mono + wide tracking + muted is
+   what makes the figure beneath them feel like the headline. */
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--n350);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -560,3 +623,6 @@ html { scroll-behavior: smooth; }
   color: #fff;
 }
 .glyph-teal svg { width: 18px; height: 18px; }
+
+/* Headings shouldn't strand one word on the last line. */
+h1, h2, h3 { text-wrap: balance; }

@@ -24,7 +24,7 @@ export default function SetupScreen({ onRetry }) {
           <Logo size={40} word wordSize={20} />
         </div>
         <div className="card p-6 sm:p-8 fade-up">
-          <h1 className="text-2xl font-extrabold mb-2" style={{ color: 'var(--n900)', letterSpacing: '-0.03em' }}>Finish setup</h1>
+          <h1 className="text-2xl font-bold mb-2" style={{ color: 'var(--n900)', letterSpacing: '-0.03em' }}>Finish setup</h1>
           <p className="text-sm mb-5" style={{ color: 'var(--n500)' }}>
             Spendly needs a few tables. Paste this into your <b style={{ color: 'var(--n700)' }}>Supabase → SQL editor</b> and run it once —
             it keeps your existing expenses untouched.

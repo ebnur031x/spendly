@@ -125,7 +125,7 @@ export default function DeepDiveDayModal({
 
           <div className="flex items-start justify-between gap-3 mb-6">
             <div className="min-w-0">
-              <h2 className="text-lg font-extrabold" style={{ color: 'var(--n900)', letterSpacing: '-0.02em' }}>
+              <h2 className="text-lg font-bold" style={{ color: 'var(--n900)', letterSpacing: '-0.02em' }}>
                 {heading}
               </h2>
               <p className="text-xs mt-0.5" style={{ color: 'var(--n350)' }}>
@@ -140,7 +140,7 @@ export default function DeepDiveDayModal({
           {/* day type — optional */}
           {dayTypes.length > 0 && (
             <>
-              <p className="text-xs font-semibold uppercase mb-2.5" style={{ color: 'var(--n400)', letterSpacing: '0.07em' }}>
+              <p className="eyebrow mb-2.5" style={{ color: 'var(--n400)' }}>
                 Day type
               </p>
               <div className="flex flex-wrap gap-1.5 mb-6">
@@ -176,7 +176,7 @@ export default function DeepDiveDayModal({
               still-editable row; nothing here is locked. */}
           {quickItems.length > 0 && (
             <div className="mb-4">
-              <p className="text-xs font-semibold uppercase mb-2" style={{ color: 'var(--n400)', letterSpacing: '0.07em' }}>
+              <p className="eyebrow mb-2" style={{ color: 'var(--n400)' }}>
                 Quick add
               </p>
               <div className="flex flex-wrap gap-1.5">
@@ -242,7 +242,7 @@ export default function DeepDiveDayModal({
 
           <div className="flex items-center justify-between mb-5 px-1">
             <span className="text-sm font-semibold" style={{ color: 'var(--n500)' }}>Day total</span>
-            <span className="text-xl font-extrabold tabular-nums" style={{ color: 'var(--n900)', letterSpacing: '-0.02em' }}>
+            <span className="text-xl font-bold tabular-nums" style={{ color: 'var(--n900)', letterSpacing: '-0.02em' }}>
               {money0(total)}
             </span>
           </div>

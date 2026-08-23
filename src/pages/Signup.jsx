@@ -14,7 +14,7 @@ const S = {
     justifyContent: 'center',
     padding: '24px 16px',
     backgroundColor: 'var(--bg)',
-    fontFamily: 'Inter, system-ui, sans-serif',
+    fontFamily: 'var(--font-sans)',
     position: 'relative',
     overflow: 'hidden',
   },
@@ -30,7 +30,7 @@ const S = {
   logo: {
     width: 44, height: 44, borderRadius: 12, background: 'var(--ink)',
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-    color: 'var(--on-ink)', fontWeight: 800, fontSize: 18,
+    color: 'var(--on-ink)', fontWeight: 700, fontSize: 18,
     textDecoration: 'none',
   },
   label: { fontSize: 13, fontWeight: 500, color: 'var(--n600)', display: 'block', marginBottom: 6 },
@@ -39,7 +39,7 @@ const S = {
     padding: '11px 14px', borderRadius: 10,
     border: '1.5px solid var(--border-2)', fontSize: 14,
     color: 'var(--n900)', background: 'var(--surface)', outline: 'none',
-    fontFamily: 'Inter, system-ui, sans-serif',
+    fontFamily: 'var(--font-sans)',
     transition: 'border-color 0.15s',
   },
   btn: {
@@ -49,7 +49,7 @@ const S = {
     fontSize: 15, fontWeight: 600,
     border: 'none', cursor: 'pointer',
     letterSpacing: '-0.01em',
-    fontFamily: 'Inter, system-ui, sans-serif',
+    fontFamily: 'var(--font-sans)',
     transition: 'background 0.15s',
   },
   errorBox: {

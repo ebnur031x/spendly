@@ -8,7 +8,7 @@ const MOVE_BUCKETS = ['daily', 'groceries', 'bills']
 export default function BucketPicker({ value, onChange }) {
   return (
     <div>
-      <p className="text-xs font-semibold uppercase mb-2" style={{ color: 'var(--n400)', letterSpacing: '0.06em' }}>
+      <p className="eyebrow mb-2" style={{ color: 'var(--n400)' }}>
         Bucket
       </p>
       <div className="flex flex-wrap gap-2">

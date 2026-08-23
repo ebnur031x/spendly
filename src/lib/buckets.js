@@ -113,7 +113,9 @@ export function bucketView(key, settingsByBucket = {}) {
   return {
     ...meta,
     settingsId: s.id ?? null,
-    icon: s.icon ?? meta.icon,
+    // Icon isn't user-customizable — always the resolved <Icon>, never the
+    // raw emoji still sitting in a user's stored settings row.
+    icon: meta.icon,
     color: s.color ?? meta.color,
     miniBudget: s.mini_budget != null ? Number(s.mini_budget) : null,
     capPeriod: s.cap_period ?? 'monthly',

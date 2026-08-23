@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { money } from '../lib/format'
 import { getCategoryMeta } from '../lib/categories'
 import { expenseDay } from '../lib/dates'
+import Icon from './icons'
 
 // Last 10 rows from the expenses table — title, amount, date, category tag.
 export default function RecentExpenses({ expenses }) {

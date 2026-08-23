@@ -40,7 +40,7 @@ const editBtnStyle = {
   color: 'var(--n500)', fontSize: 12, cursor: 'pointer',
   display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
 }
-const sectionLabelStyle = { color: 'var(--n400)', letterSpacing: '0.07em' }
+const sectionLabelStyle = { color: 'var(--n400)' }
 
 /* Spine geometry. The <li> sits inside the <ul>'s left padding, so the
    marker and spine hang back into that gutter at negative offsets. In gutter
@@ -477,9 +477,9 @@ export default function DailyDeepDive() {
 
       <div className="flex items-start gap-3 mb-1">
         <span className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0"
-          style={{ background: `${daily.color}22`, fontSize: 21 }}>{daily.icon}</span>
+          style={{ background: `${daily.color}22`, fontSize: 21, color: daily.color }}>{daily.icon}</span>
         <div className="min-w-0">
-          <h1 className="text-2xl font-extrabold tracking-tight" style={{ color: 'var(--n900)', letterSpacing: '-0.03em' }}>
+          <h1 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--n900)', letterSpacing: '-0.03em' }}>
             Daily Spend deep-dive
           </h1>
           <p className="text-sm mt-0.5" style={{ color: 'var(--n350)' }}>
@@ -503,7 +503,10 @@ export default function DailyDeepDive() {
       <Reveal>
         <div className="card px-5 py-6 sm:px-7 mb-4">
           <div className="flex items-center justify-between gap-3 mb-1">
-            <p className="text-xs font-semibold uppercase" style={sectionLabelStyle}>1 · {monthLabel(month)}</p>
+            <p className="flex items-baseline gap-2 min-w-0">
+              <span className="eyebrow" style={sectionLabelStyle}>1 ·</span>
+              <MonthTitle month={month} size={22} />
+            </p>
             <span className="text-xs" style={{ color: 'var(--n350)' }}>{totalDays} days</span>
           </div>
 
@@ -640,7 +643,7 @@ export default function DailyDeepDive() {
                         <span className="text-[11px] font-semibold uppercase" style={{ color: 'var(--n400)', letterSpacing: '0.07em' }}>
                           Day total
                         </span>
-                        <span className="text-base font-extrabold tabular-nums" style={{ color: 'var(--n900)', letterSpacing: '-0.02em' }}>
+                        <span className="text-base font-bold tabular-nums" style={{ color: 'var(--n900)', letterSpacing: '-0.02em' }}>
                           {money0(dailyLogTotal(log))}
                         </span>
                       </div>
@@ -695,7 +698,7 @@ export default function DailyDeepDive() {
       <Reveal delay={60}>
         <div className="card p-5 mb-4">
           <div className="flex items-center justify-between mb-1">
-            <p className="text-xs font-semibold uppercase" style={sectionLabelStyle}>2 · The mix</p>
+            <p className="eyebrow" style={sectionLabelStyle}>2 · The mix</p>
             <span className="text-xs" style={{ color: 'var(--n350)' }}>{totalDays} days in {monthLabel(month)}</span>
           </div>
           <p className="text-xs mb-4" style={{ color: 'var(--n350)' }}>
@@ -721,18 +724,18 @@ export default function DailyDeepDive() {
 
           <div className="flex items-center justify-between gap-3 my-4 px-4 py-3 rounded-2xl" style={{ background: remainingBg }}>
             <div>
-              <p className="text-2xl font-extrabold tabular-nums" style={{ color: remainingColor, letterSpacing: '-0.02em' }}>
+              <p className="data-mono text-2xl font-semibold" style={{ color: remainingColor }}>
                 {daysRemaining}
               </p>
-              <p className="text-xs font-semibold" style={{ color: remainingColor }}>
+              <p className="eyebrow" style={{ color: remainingColor, letterSpacing: '0.12em' }}>
                 {daysRemaining === 0 ? 'days left to allocate — fully allocated' : daysRemaining < 0 ? 'over-allocated' : 'days left to allocate'}
               </p>
             </div>
             <div className="text-right">
-              <p className="text-2xl font-extrabold tabular-nums" style={{ color: 'var(--n900)', letterSpacing: '-0.02em' }}>
+              <p className="money-serif text-2xl" style={{ color: 'var(--n900)' }}>
                 {money0(runningTotal)}
               </p>
-              <p className="text-xs font-semibold" style={{ color: 'var(--n400)' }}>projected this month</p>
+              <p className="eyebrow" style={{ letterSpacing: '0.12em' }}>projected this month</p>
             </div>
           </div>
 
@@ -837,7 +840,7 @@ export default function DailyDeepDive() {
                           <div key={i} className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg"
                             style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)' }}>
                             <span className="flex-1 min-w-0 text-xs truncate" style={{ color: 'var(--n700)' }}>{it.name}</span>
-                            <span className="text-xs font-semibold tabular-nums flex-shrink-0" style={{ color: 'var(--n800)' }}>{money0(it.amount)}</span>
+                            <span className="data-mono text-xs font-semibold flex-shrink-0" style={{ color: 'var(--n800)' }}>{money0(it.amount)}</span>
                             <button onClick={() => removeDefaultItem(dt, i)} className="btn-delete flex-shrink-0"
                               title="Remove" style={{ width: 20, height: 20, fontSize: 11 }}>×</button>
                           </div>
@@ -900,7 +903,7 @@ export default function DailyDeepDive() {
           <div className="modal-scrim" onClick={() => !bulkApplying && setBulkConfirmId(null)}>
             <div className="modal-sheet" onClick={e => e.stopPropagation()}>
               <div className="p-6">
-                <h2 className="text-lg font-extrabold mb-2" style={{ color: 'var(--n900)', letterSpacing: '-0.02em' }}>
+                <h2 className="text-lg font-bold mb-2" style={{ color: 'var(--n900)', letterSpacing: '-0.02em' }}>
                   Apply "{dt.name}" to {missingDates.length} day{missingDates.length === 1 ? '' : 's'}?
                 </h2>
                 <p className="text-sm mb-5" style={{ color: 'var(--n400)' }}>
@@ -934,7 +937,7 @@ export default function DailyDeepDive() {
           <div className="modal-scrim" onClick={() => !sending && setSendWeekConfirm(null)}>
             <div className="modal-sheet" onClick={e => e.stopPropagation()}>
               <div className="p-6">
-                <h2 className="text-lg font-extrabold mb-2" style={{ color: 'var(--n900)', letterSpacing: '-0.02em' }}>
+                <h2 className="text-lg font-bold mb-2" style={{ color: 'var(--n900)', letterSpacing: '-0.02em' }}>
                   Send {unsent.length} day{unsent.length === 1 ? '' : 's'} ({week.label}) to Daily Spend?
                 </h2>
                 <p className="text-sm mb-5" style={{ color: 'var(--n400)' }}>

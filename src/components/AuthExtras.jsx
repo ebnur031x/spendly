@@ -123,7 +123,7 @@ export function SuccessOverlay({ title, subtitle }) {
             </svg>
           </div>
         </div>
-        <h2 style={{ fontSize: 24, fontWeight: 800, color: 'var(--n900)', letterSpacing: '-0.03em', margin: '0 0 8px' }}>{title}</h2>
+        <h2 style={{ fontSize: 24, fontWeight: 700, color: 'var(--n900)', letterSpacing: '-0.03em', margin: '0 0 8px' }}>{title}</h2>
         <p style={{ fontSize: 15, color: 'var(--n400)', margin: 0 }}>{subtitle}</p>
       </div>
     </div>

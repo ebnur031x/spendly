@@ -37,7 +37,7 @@ export default function BucketCard({ view, used = 0, cap = null, entries = [], o
           style={{
             background: `linear-gradient(135deg, ${color}29, ${color}0d)`,
             boxShadow: `inset 0 0 0 1px ${color}40`,
-            fontSize: 19,
+            color,
           }}>{icon}</span>
         <div className="min-w-0 flex-1">
           <p className="text-sm font-bold leading-tight" style={{ color: 'var(--n900)' }}>{name}</p>
@@ -70,7 +70,7 @@ export default function BucketCard({ view, used = 0, cap = null, entries = [], o
               boxShadow: 'var(--shadow-tooltip)',
             }}
           >
-            <div style={{ fontSize: '1.4rem', fontWeight: 800, letterSpacing: '-0.02em', color: progressColor(pctRaw, color) }}>
+            <div style={{ fontSize: '1.4rem', fontWeight: 700, letterSpacing: '-0.02em', color: progressColor(pctRaw, color) }}>
               {pct}%
             </div>
             <div style={{ fontSize: '0.6rem', fontWeight: 700, color: 'var(--n350)', textTransform: 'uppercase', letterSpacing: '0.07em', marginTop: 1 }}>

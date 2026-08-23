@@ -150,8 +150,8 @@ export default function Savings() {
           </p>
         </div>
         <div className="text-right">
-          <p className="text-xs font-semibold uppercase" style={{ color: 'var(--n300)', letterSpacing: '0.07em' }}>Total saved</p>
-          <p className="text-lg font-extrabold tabular-nums" style={{ color: 'var(--n900)', letterSpacing: '-0.02em' }}>
+          <p className="eyebrow">Total saved</p>
+          <p className="money-serif" style={{ fontSize: '1.15rem', color: 'var(--n900)' }}>
             {loading ? '…' : fmt(total)}
           </p>
         </div>
@@ -160,7 +160,7 @@ export default function Savings() {
       {/* Add form */}
       <div className="card mb-5">
         <form onSubmit={handleAdd} className="p-6">
-          <p className="text-xs font-semibold uppercase mb-4" style={{ color: 'var(--n400)', letterSpacing: '0.07em' }}>New savings entry</p>
+          <p className="eyebrow mb-4" style={{ color: 'var(--n400)' }}>New savings entry</p>
 
           <input
             value={label}
@@ -173,7 +173,7 @@ export default function Savings() {
 
           <div className="flex gap-3 mb-3">
             <div className="flex items-center flex-1 rounded-2xl px-4" style={{ background: 'var(--surface-2)', border: '1.5px solid var(--border-2)' }}>
-              <span className="text-xl font-bold mr-1" style={{ color: 'var(--n300)' }}>৳</span>
+              <span className="text-xl font-semibold mr-1.5" style={{ color: 'var(--n300)' }}>৳</span>
               <input
                 ref={amountRef}
                 type="number"
@@ -182,7 +182,7 @@ export default function Savings() {
                 value={amount}
                 onChange={e => setAmount(e.target.value)}
                 placeholder="0"
-                className="w-full py-2.5 text-2xl font-extrabold tabular-nums"
+                className="w-full py-2.5 text-2xl font-bold tabular-nums"
                 style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--n900)', letterSpacing: '-0.02em' }}
               />
             </div>
@@ -232,13 +232,13 @@ export default function Savings() {
               each entry's own date — not sample data. */}
           <div className="card px-5 py-4 mb-4 flex items-center justify-between gap-4">
             <div>
-              <p className="text-xs font-semibold uppercase" style={{ color: 'var(--n300)', letterSpacing: '0.07em' }}>Total savings</p>
-              <p className="text-2xl font-extrabold tabular-nums" style={{ color: 'var(--n900)', letterSpacing: '-0.02em' }}>
+              <p className="eyebrow">Total savings</p>
+              <p className="money-serif" style={{ fontSize: '2rem', color: 'var(--n900)', marginTop: 2 }}>
                 {fmt(total)}
               </p>
               {thisMonthDelta > 0 && (
-                <p className="text-xs font-semibold mt-1" style={{ color: 'var(--success)' }}>
-                  ↑ {fmt(thisMonthDelta)} this month
+                <p className="data-mono mt-1" style={{ fontSize: '0.66rem', color: 'var(--success)' }}>
+                  ↑ {fmt(thisMonthDelta)} THIS MONTH
                 </p>
               )}
             </div>
@@ -275,13 +275,13 @@ export default function Savings() {
                         autoFocus
                       />
                       <div className="flex items-center rounded-xl px-4" style={{ background: 'var(--surface-2)', border: '1.5px solid var(--border-2)' }}>
-                        <span className="text-lg font-bold mr-1" style={{ color: 'var(--n300)' }}>৳</span>
+                        <span className="text-lg font-semibold mr-1.5" style={{ color: 'var(--n300)' }}>৳</span>
                         <input
                           type="number" min="0" step="1"
                           value={editAmount}
                           onChange={e => setEditAmount(e.target.value)}
                           placeholder="0"
-                          className="w-full py-2.5 text-xl font-extrabold tabular-nums"
+                          className="w-full py-2.5 text-xl font-bold tabular-nums"
                           style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--n900)' }}
                         />
                       </div>
@@ -316,7 +316,7 @@ export default function Savings() {
                         )}
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
-                        <span className="text-sm font-bold tabular-nums" style={{ color: 'var(--n900)' }}>{fmt(item.amount)}</span>
+                        <span className="money-serif" style={{ fontSize: '1.05rem', color: 'var(--n900)' }}>{fmt(item.amount)}</span>
                         <button onClick={() => openEdit(item)} title="Edit"
                           style={{
                             width: 28, height: 28, borderRadius: '50%',

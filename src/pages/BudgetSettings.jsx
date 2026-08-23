@@ -127,7 +127,7 @@ export default function BudgetSettings() {
 
       <Reveal>
         <div className="card p-5 mb-4">
-          <label className="block text-xs font-semibold uppercase mb-2" style={{ color: 'var(--n400)', letterSpacing: '0.06em' }}>
+          <label className="block eyebrow mb-2" style={{ color: 'var(--n400)' }}>
             Overall monthly cap
           </label>
           <p className="text-xs mb-2" style={{ color: 'var(--n350)' }}>
@@ -135,10 +135,8 @@ export default function BudgetSettings() {
           </p>
           <div className="flex items-center rounded-2xl px-4" aria-live="polite"
             style={{ background: 'var(--surface)', border: '1.5px dashed var(--border-3)' }}>
-            <span className="text-2xl font-bold mr-1" style={{ color: 'var(--n300)' }}>৳</span>
-            <span className="w-full py-3 text-3xl font-extrabold tabular-nums select-none"
-              style={{ color: 'var(--n500)', letterSpacing: '-0.02em' }}>
-              {mainNum.toLocaleString('en-US')}
+            <span className="money-serif w-full py-3 text-3xl select-none" style={{ color: 'var(--n500)' }}>
+              ৳{mainNum.toLocaleString('en-US')}
             </span>
           </div>
         </div>
@@ -146,7 +144,7 @@ export default function BudgetSettings() {
 
       <Reveal delay={60}>
         <div className="card p-5 mb-4">
-          <p className="text-xs font-semibold uppercase mb-4" style={{ color: 'var(--n400)', letterSpacing: '0.07em' }}>
+          <p className="eyebrow mb-4" style={{ color: 'var(--n400)' }}>
             Per-bucket caps
           </p>
           <div className="flex flex-col gap-3">
@@ -160,14 +158,14 @@ export default function BudgetSettings() {
                     className="flex items-center gap-3 flex-1 min-w-0 row-hover rounded-xl -mx-1 px-1 py-1"
                     style={{ textDecoration: 'none' }}>
                     <span className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
-                      style={{ background: `${b.color}22`, fontSize: 16 }}>{b.icon}</span>
+                      style={{ background: `${b.color}22`, fontSize: 16, color: b.color }}>{bucketMeta(b.key).icon}</span>
                     <span className="text-sm font-medium flex-1 truncate" style={{ color: 'var(--n700)' }}>{b.name}</span>
                     <span className="text-xs flex-shrink-0" style={{ color: 'var(--n300)' }}>Deep dive ›</span>
                   </Link>
                 ) : (
                   <>
                     <span className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
-                      style={{ background: `${b.color}22`, fontSize: 16 }}>{b.icon}</span>
+                      style={{ background: `${b.color}22`, fontSize: 16, color: b.color }}>{bucketMeta(b.key).icon}</span>
                     <span className="text-sm font-medium flex-1" style={{ color: 'var(--n700)' }}>{b.name}</span>
                   </>
                 )}

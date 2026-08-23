@@ -41,7 +41,7 @@ export default function DayTypesModal({ userId, dayTypes, onClose, onChanged }) 
         <div className="p-6">
           <div className="flex items-center justify-between mb-5">
             <div>
-              <h2 className="text-lg font-extrabold" style={{ color: 'var(--n900)', letterSpacing: '-0.02em' }}>Day types</h2>
+              <h2 className="text-lg font-bold" style={{ color: 'var(--n900)', letterSpacing: '-0.02em' }}>Day types</h2>
               <p className="text-xs mt-0.5" style={{ color: 'var(--n350)' }}>Templates for logging a whole day at once</p>
             </div>
             <button onClick={onClose} aria-label="Close"
@@ -146,15 +146,15 @@ function DayTypeEditor({ userId, dayType, onCancel, onSaved }) {
 
   return (
     <div>
-      <label className="block text-xs font-semibold uppercase mb-1.5" style={{ color: 'var(--n400)', letterSpacing: '0.06em' }}>Name</label>
+      <label className="block eyebrow mb-1.5" style={{ color: 'var(--n400)' }}>Name</label>
       <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Gym Day"
         className="w-full rounded-xl px-3.5 py-2.5 text-sm mb-4"
         style={{ background: 'var(--surface-2)', border: '1.5px solid var(--border-2)', color: 'var(--n900)' }} />
 
-      <label className="block text-xs font-semibold uppercase mb-2" style={{ color: 'var(--n400)', letterSpacing: '0.06em' }}>Color</label>
+      <label className="block eyebrow mb-2" style={{ color: 'var(--n400)' }}>Color</label>
       <ColorSwatches colors={DAY_TYPE_COLORS} value={color} onChange={setColor} className="mb-4" />
 
-      <label className="block text-xs font-semibold uppercase mb-1.5" style={{ color: 'var(--n400)', letterSpacing: '0.06em' }}>
+      <label className="block eyebrow mb-1.5" style={{ color: 'var(--n400)' }}>
         Sub-budget <span style={{ textTransform: 'none', letterSpacing: 0 }}>(optional)</span>
       </label>
       <div className="flex items-center rounded-xl px-3 mb-4" style={{ background: 'var(--surface-2)', border: '1.5px solid var(--border-2)' }}>
@@ -164,7 +164,7 @@ function DayTypeEditor({ userId, dayType, onCancel, onSaved }) {
           style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--n900)' }} />
       </div>
 
-      <label className="block text-xs font-semibold uppercase mb-2" style={{ color: 'var(--n400)', letterSpacing: '0.06em' }}>Expense fields</label>
+      <label className="block eyebrow mb-2" style={{ color: 'var(--n400)' }}>Expense fields</label>
       <div className="flex flex-col gap-2 mb-2">
         {fields.map((f, i) => (
           <div key={i} className="flex items-center gap-2">

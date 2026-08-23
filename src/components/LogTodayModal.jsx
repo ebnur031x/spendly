@@ -5,6 +5,7 @@ import { dayKey } from '../lib/dates'
 import { isTextField } from '../lib/dayTypes'
 import { createDailyLog, updateDailyLog } from '../lib/dailyLogs'
 import BucketMismatchWarning from './BucketMismatchWarning'
+import Icon from './icons'
 
 // Two-step "log a whole day":
 //   1. pick a day type (big tap targets: color + icon + name)
@@ -98,7 +99,7 @@ export default function LogTodayModal({ userId, dayTypes, initialType = null, in
                   style={{ background: 'var(--surface-2)', color: 'var(--n500)', border: '1px solid var(--border-2)' }}>←</button>
               )}
               <div className="min-w-0">
-                <h2 className="text-lg font-extrabold truncate" style={{ color: 'var(--n900)', letterSpacing: '-0.02em' }}>
+                <h2 className="text-lg font-bold truncate" style={{ color: 'var(--n900)', letterSpacing: '-0.02em' }}>
                   {step === 1 ? 'Log a day' : type.name}
                 </h2>
                 <p className="text-xs mt-0.5" style={{ color: 'var(--n350)' }}>
@@ -146,7 +147,7 @@ export default function LogTodayModal({ userId, dayTypes, initialType = null, in
             <>
               {/* date */}
               <div className="flex items-center justify-between mb-4 px-1">
-                <span className="text-xs font-semibold uppercase" style={{ color: 'var(--n400)', letterSpacing: '0.06em' }}>Date</span>
+                <span className="eyebrow" style={{ color: 'var(--n400)' }}>Date</span>
                 <input type="date" value={date} max={dayKey(new Date())}
                   onChange={e => e.target.value && setDate(e.target.value)}
                   className="text-xs font-semibold rounded-full px-3 py-1.5 cursor-pointer"
@@ -281,7 +282,7 @@ export default function LogTodayModal({ userId, dayTypes, initialType = null, in
               {/* total + save */}
               <div className="flex items-center justify-between mb-4 px-1">
                 <span className="text-sm font-semibold" style={{ color: 'var(--n500)' }}>Day total</span>
-                <span className="text-xl font-extrabold tabular-nums" style={{ color: 'var(--n900)', letterSpacing: '-0.02em' }}>
+                <span className="text-xl font-bold tabular-nums" style={{ color: 'var(--n900)', letterSpacing: '-0.02em' }}>
                   {money0(total)}
                 </span>
               </div>

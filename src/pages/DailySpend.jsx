@@ -247,6 +247,10 @@ export default function DailySpend() {
     setConvertingLog(null)
   }
 
+  // The raw write — used directly (immediate, no undo) by the "convert to
+  // expense" flow above, since that's a move rather than something the user
+  // perceives as a delete. The two actual delete buttons below go through
+  // handleDeleteLogItemWithUndo instead.
   async function handleDeleteLogItem(log, itemIndex) {
     if (itemIndex === -1) {
       const { error: err } = await supabase.from('daily_logs').delete().eq('id', log.id)
@@ -440,7 +444,7 @@ export default function DailySpend() {
         <Reveal>
           <div className="card p-5 mb-4">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-semibold uppercase" style={{ color: 'var(--n400)', letterSpacing: '0.07em' }}>Daily Spend cap</span>
+              <span className="eyebrow" style={{ color: 'var(--n400)' }}>Daily Spend cap</span>
               <Link to="/budget-settings/daily-deep-dive"
                 className="btn-soft text-xs px-3 py-1.5 rounded-full font-semibold" style={{ textDecoration: 'none' }}>
                 {miniBudget != null ? 'Deep dive ›' : 'Set it up ›'}
@@ -464,9 +468,7 @@ export default function DailySpend() {
         <Reveal delay={20}>
           <div className="card p-4 mb-4">
             <div className="flex items-center justify-between mb-3 px-1 gap-2">
-              <span className="text-xs font-semibold uppercase" style={{ color: 'var(--n400)', letterSpacing: '0.06em' }}>
-                {sel.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
-              </span>
+              <MonthTitle month={selectedDay.slice(0, 7)} size={20} />
               <div className="flex items-center gap-2 flex-shrink-0">
                 <input type="date" value={selectedDay} onChange={e => e.target.value && setSelectedDay(e.target.value)}
                   aria-label="Pick any date" className="text-xs font-semibold rounded-full px-2.5 py-1 cursor-pointer"
@@ -495,7 +497,7 @@ export default function DailySpend() {
                     <span className="text-[10px] font-semibold uppercase" style={{ opacity: active ? 0.7 : 1, letterSpacing: '0.04em' }}>
                       {date.toLocaleDateString(undefined, { weekday: 'short' }).slice(0, 3)}
                     </span>
-                    <span className="text-lg font-extrabold tabular-nums leading-tight" style={{ color: active ? 'var(--on-ink)' : 'var(--n900)' }}>
+                    <span className="text-lg font-bold tabular-nums leading-tight" style={{ color: active ? 'var(--on-ink)' : 'var(--n900)' }}>
                       {date.getDate()}
                     </span>
                     <span style={{ width: 5, height: 5, borderRadius: '50%', marginTop: 2, background: has ? (active ? 'var(--on-ink)' : 'var(--accent)') : 'transparent' }} />
@@ -511,7 +513,7 @@ export default function DailySpend() {
           <div className="card mb-4">
             <form onSubmit={handleSave} className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <span className="text-xs font-semibold uppercase" style={{ color: 'var(--n400)', letterSpacing: '0.07em' }}>New expense</span>
+                <span className="eyebrow" style={{ color: 'var(--n400)' }}>New expense</span>
                 <span className="text-xs font-medium px-2.5 py-1 rounded-full"
                   style={{ background: isFuture ? 'rgba(124,58,237,0.12)' : 'var(--surface-2)', color: isFuture ? 'var(--accent)' : 'var(--n500)' }}>
                   {isToday ? 'Today' : dayWeekday} · {sel.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}{isFuture ? ' · upcoming' : ''}
@@ -520,9 +522,9 @@ export default function DailySpend() {
 
               <div className="flex items-center gap-3 mb-4">
                 <div className="flex items-center flex-1 rounded-2xl px-4" style={{ background: 'var(--surface-2)', border: '1.5px solid var(--border-2)' }}>
-                  <span className="text-2xl font-bold mr-1" style={{ color: 'var(--n300)' }}>৳</span>
+                  <span className="text-xl font-semibold mr-1.5" style={{ color: 'var(--n300)' }}>৳</span>
                   <input ref={amountRef} type="number" min="0.01" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0"
-                    className="w-full py-3 text-3xl font-extrabold tabular-nums"
+                    className="w-full py-3 text-3xl font-bold tabular-nums"
                     style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--n900)', letterSpacing: '-0.02em' }} />
                 </div>
                 <button type="submit" disabled={!canSave || saving} className="btn-ink rounded-2xl font-semibold flex-shrink-0"
@@ -550,7 +552,7 @@ export default function DailySpend() {
 
               {saveTarget === 'daily' && (
                 <>
-                  <p className="text-xs font-semibold uppercase mb-2" style={{ color: 'var(--n400)', letterSpacing: '0.06em' }}>Quick add</p>
+                  <p className="eyebrow mb-2" style={{ color: 'var(--n400)' }}>Quick add</p>
                   <div className="flex flex-wrap gap-2 mb-4">
                     {PRESETS.map(p => {
                       const active = title === p.label && category === p.category
@@ -630,7 +632,7 @@ export default function DailySpend() {
               <h2 className="text-lg font-bold" style={{ color: 'var(--n900)' }}>{isToday ? 'Today' : dayWeekday}</h2>
               <span className="text-sm" style={{ color: 'var(--n350)' }}>{dayRest}</span>
             </div>
-            <span className="text-lg font-extrabold tabular-nums" style={{ color: dayTotal > 0 ? 'var(--n900)' : 'var(--n300)' }}>{fmt(dayTotal)}</span>
+            <span className="money-serif text-xl" style={{ color: dayTotal > 0 ? 'var(--n900)' : 'var(--n300)' }}>{fmt(dayTotal)}</span>
           </div>
 
           {dayTotal > 0 && (
@@ -675,7 +677,7 @@ export default function DailySpend() {
                       <span className="flex items-center gap-2 text-xs font-bold uppercase" style={{ color: 'var(--n400)', letterSpacing: '0.06em' }}>
                         <span style={{ fontSize: 13 }}>{group.emoji}</span>{group.label}
                       </span>
-                      <span className="text-xs font-semibold tabular-nums" style={{ color: 'var(--n400)' }}>{fmt0(subtotal)}</span>
+                      <span className="data-mono text-xs font-semibold" style={{ color: 'var(--n400)' }}>{fmt0(subtotal)}</span>
                     </div>
                     <div className="card overflow-hidden">
                       <ul>
@@ -718,7 +720,7 @@ export default function DailySpend() {
                         <span style={{ width: 8, height: 8, borderRadius: '50%', background: dt?.color || 'var(--accent)', display: 'inline-block', flexShrink: 0 }} />
                         {dt?.name || 'Day Log'}
                       </span>
-                      <span className="text-xs font-semibold tabular-nums" style={{ color: 'var(--n400)' }}>{fmt0(log.total_spent)}</span>
+                      <span className="data-mono text-xs font-semibold" style={{ color: 'var(--n400)' }}>{fmt0(log.total_spent)}</span>
                     </div>
                     <div className="card overflow-hidden">
                       <ul>
@@ -735,7 +737,7 @@ export default function DailySpend() {
                             <div className="flex items-center gap-2 flex-shrink-0">
                               <span className="text-sm font-semibold tabular-nums" style={{ color: 'var(--n900)' }}>−{fmt(item.amount)}</span>
                               <button onClick={() => openConvert(log, item.rawIdx)} title="Edit" style={editBtnStyle}>✎</button>
-                              <button onClick={() => handleDeleteLogItem(log, item.rawIdx)} className="btn-delete" title="Delete">×</button>
+                              <button onClick={() => handleDeleteLogItemWithUndo(log, item.rawIdx)} className="btn-delete" title="Delete">×</button>
                             </div>
                           </li>
                         )) : (
@@ -750,7 +752,7 @@ export default function DailySpend() {
                             <div className="flex items-center gap-2 flex-shrink-0">
                               <span className="text-sm font-semibold tabular-nums" style={{ color: 'var(--n900)' }}>−{fmt(log.total_spent)}</span>
                               <button onClick={() => openConvert(log, -1)} title="Edit" style={editBtnStyle}>✎</button>
-                              <button onClick={() => handleDeleteLogItem(log, -1)} className="btn-delete" title="Delete">×</button>
+                              <button onClick={() => handleDeleteLogItemWithUndo(log, -1)} className="btn-delete" title="Delete">×</button>
                             </div>
                           </li>
                         )}
@@ -778,21 +780,21 @@ export default function DailySpend() {
           <div className="modal-sheet" onClick={e => e.stopPropagation()}>
             <div className="p-6">
               <div className="flex items-center justify-between mb-5">
-                <h2 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--n900)', letterSpacing: '-0.02em' }}>Edit expense</h2>
+                <h2 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--n900)', letterSpacing: '-0.02em' }}>Edit expense</h2>
                 <button onClick={() => setConvertingLog(null)} style={{ ...editBtnStyle, width: 36, height: 36, fontSize: 14 }}>✕</button>
               </div>
               <input value={convTitle} onChange={e => setConvTitle(e.target.value)} placeholder="Description"
                 className="w-full rounded-xl px-3.5 py-2.5 text-sm mb-3" style={inputStyle} autoFocus />
               <div className="flex items-center justify-between mb-3 px-1">
-                <span className="text-xs font-semibold uppercase" style={{ color: 'var(--n400)', letterSpacing: '0.06em' }}>Date</span>
+                <span className="eyebrow" style={{ color: 'var(--n400)' }}>Date</span>
                 <input type="date" value={convDate} onChange={e => e.target.value && setConvDate(e.target.value)}
                   className="text-xs font-semibold rounded-full px-3 py-1.5 cursor-pointer"
                   style={{ background: 'var(--surface-2)', border: '1.5px solid var(--border-2)', color: 'var(--n700)' }} />
               </div>
               <div className="flex items-center rounded-2xl px-4 mb-4" style={{ background: 'var(--surface-2)', border: '1.5px solid var(--border-2)' }}>
-                <span className="text-2xl font-bold mr-1" style={{ color: 'var(--n300)' }}>৳</span>
+                <span className="text-xl font-semibold mr-1.5" style={{ color: 'var(--n300)' }}>৳</span>
                 <input type="number" min="0.01" step="0.01" value={convAmount} onChange={e => setConvAmount(e.target.value)} placeholder="0"
-                  className="w-full py-3 text-3xl font-extrabold tabular-nums"
+                  className="w-full py-3 text-3xl font-bold tabular-nums"
                   style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--n900)', letterSpacing: '-0.02em' }} />
               </div>
               <div className="mb-4">
@@ -835,21 +837,21 @@ export default function DailySpend() {
           <div className="modal-sheet" onClick={e => e.stopPropagation()}>
             <div className="p-6">
               <div className="flex items-center justify-between mb-5">
-                <h2 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--n900)', letterSpacing: '-0.02em' }}>Edit expense</h2>
+                <h2 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--n900)', letterSpacing: '-0.02em' }}>Edit expense</h2>
                 <button onClick={() => setEditing(null)} style={{ ...editBtnStyle, width: 36, height: 36, fontSize: 14 }}>✕</button>
               </div>
               <input value={editTitle} onChange={e => setEditTitle(e.target.value)} placeholder="Description"
                 className="w-full rounded-xl px-3.5 py-2.5 text-sm mb-3" style={inputStyle} autoFocus />
               <div className="flex items-center justify-between mb-3 px-1">
-                <span className="text-xs font-semibold uppercase" style={{ color: 'var(--n400)', letterSpacing: '0.06em' }}>Date</span>
+                <span className="eyebrow" style={{ color: 'var(--n400)' }}>Date</span>
                 <input type="date" value={editDate} onChange={e => e.target.value && setEditDate(e.target.value)}
                   className="text-xs font-semibold rounded-full px-3 py-1.5 cursor-pointer"
                   style={{ background: 'var(--surface-2)', border: '1.5px solid var(--border-2)', color: 'var(--n700)' }} />
               </div>
               <div className="flex items-center rounded-2xl px-4 mb-4" style={{ background: 'var(--surface-2)', border: '1.5px solid var(--border-2)' }}>
-                <span className="text-2xl font-bold mr-1" style={{ color: 'var(--n300)' }}>৳</span>
+                <span className="text-xl font-semibold mr-1.5" style={{ color: 'var(--n300)' }}>৳</span>
                 <input type="number" min="0.01" step="0.01" value={editAmount} onChange={e => setEditAmount(e.target.value)} placeholder="0"
-                  className="w-full py-3 text-3xl font-extrabold tabular-nums"
+                  className="w-full py-3 text-3xl font-bold tabular-nums"
                   style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--n900)', letterSpacing: '-0.02em' }} />
               </div>
               <div className="mb-4">

@@ -17,6 +17,7 @@ import { resolveCap } from '../components/MiniBudgetBar'
 import LogTodayModal from '../components/LogTodayModal'
 import SetupScreen from '../components/SetupScreen'
 import ThemeToggle from '../components/ThemeToggle'
+import MonthTitle from '../components/MonthTitle'
 
 const MONTH_RE = /^\d{4}-\d{2}$/
 
@@ -233,7 +234,7 @@ export default function Dashboard() {
             )}
           </p>
           <div className="flex items-center gap-2 mt-0.5">
-            <h1 className="text-2xl font-extrabold tracking-tight" style={{ color: 'var(--n900)', letterSpacing: '-0.03em' }}>{monthLabel(month)}</h1>
+            <h1><MonthTitle month={month} size={34} /></h1>
             <MonthNav month={month} onChange={goToMonth} />
           </div>
         </div>
@@ -280,16 +281,18 @@ export default function Dashboard() {
           </div>
           <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
           <BudgetRing fraction={usedFraction} color={ringColor}>
-            <span className="tabular-nums leading-none"
-              style={{ fontSize: heroSize, fontWeight: 700, color: overBudget ? 'var(--danger)' : 'var(--n900)', letterSpacing: '-0.03em', whiteSpace: 'nowrap' }}>
+            <span className="money-serif leading-none"
+              style={{ fontSize: heroSize, color: overBudget ? 'var(--danger)' : 'var(--n900)', letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>
               {overBudget ? `−${money0(Math.abs(cuRemaining))}` : money0(cuRemaining)}
             </span>
-            <span style={{ fontSize: '0.75rem', color: 'var(--n400)', letterSpacing: '0.07em', marginTop: '0.4rem' }}>
+            {/* Tighter tracking than the default eyebrow: the ring's inner
+                width can't take 0.2em on a phrase this long without wrapping. */}
+            <span className="eyebrow" style={{ marginTop: '0.5rem', letterSpacing: '0.13em', whiteSpace: 'nowrap' }}>
               {overBudget ? 'over budget' : isCurrentMonth ? 'left this month' : 'left unspent'}
             </span>
             {/* The ring keeps only the figure — editing moved to a real
                 button below, where it's actually findable. */}
-            <span className="tabular-nums" style={{ fontSize: '0.7rem', color: 'var(--n350)', marginTop: 4 }}>
+            <span className="data-mono" style={{ fontSize: '0.66rem', color: 'var(--n350)', marginTop: 5 }}>
               of {money0(main)}
             </span>
           </BudgetRing>
@@ -386,7 +389,7 @@ export default function Dashboard() {
         <div className="modal-scrim" onClick={() => !resetting && setShowReset(false)}>
           <div className="modal-sheet" onClick={e => e.stopPropagation()}>
             <div className="p-6">
-              <h2 className="text-lg font-extrabold mb-2" style={{ color: 'var(--n900)', letterSpacing: '-0.02em' }}>
+              <h2 className="text-lg font-bold mb-2" style={{ color: 'var(--n900)', letterSpacing: '-0.02em' }}>
                 Reset {monthLabel(month)}?
               </h2>
               <p className="text-sm mb-5" style={{ color: 'var(--n400)' }}>

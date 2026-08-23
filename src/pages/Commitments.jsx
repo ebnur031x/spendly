@@ -211,8 +211,9 @@ export default function Commitments() {
       <Reveal>
         <div className="card p-5 mb-4">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-semibold uppercase" style={{ color: 'var(--n400)', letterSpacing: '0.07em' }}>
-              Reserved for {monthLabel(month)}
+            <span className="flex items-baseline gap-x-2 gap-y-0.5 flex-wrap min-w-0">
+              <span className="eyebrow flex-shrink-0" style={{ color: 'var(--n400)', whiteSpace: 'nowrap' }}>Reserved for</span>
+              <MonthTitle month={month} size={19} />
             </span>
             <button onClick={() => { setCapVal(miniBudget != null ? String(miniBudget) : ''); setShowCap(true) }}
               className="btn-soft text-xs px-3 py-1.5 rounded-full font-semibold">
@@ -227,7 +228,7 @@ export default function Commitments() {
       <Reveal delay={60}>
         <div className="flex items-end justify-between mb-3 px-1">
           <h2 className="text-lg font-bold" style={{ color: 'var(--n900)' }}>This month</h2>
-          <span className="text-sm tabular-nums" style={{ color: 'var(--n350)' }}>{money0(used)}</span>
+          <span className="money-serif text-xl" style={{ color: used > 0 ? 'var(--n900)' : 'var(--n300)' }}>{money0(used)}</span>
         </div>
 
         {loading ? (
@@ -277,7 +278,9 @@ export default function Commitments() {
       {!loading && suggested.length > 0 && (
         <Reveal delay={80}>
           <div className="flex items-end justify-between mb-3 px-1">
-            <h2 className="text-lg font-bold" style={{ color: 'var(--n900)' }}>Suggested for {monthLabel(month)}</h2>
+            <h2 className="text-lg font-bold flex items-baseline gap-x-1.5 flex-wrap min-w-0" style={{ color: 'var(--n900)' }}>
+              Suggested for <MonthTitle month={month} size={20} />
+            </h2>
           </div>
           <div className="card overflow-hidden mb-4">
             <ul>
@@ -287,7 +290,7 @@ export default function Commitments() {
                   <span style={{ width: 10, height: 10, borderRadius: '50%', background: t.color, flexShrink: 0 }} />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate" style={{ color: 'var(--n800)' }}>{t.name}</p>
-                    <span className="text-xs" style={{ color: 'var(--n350)' }}>{money0(t.amount)}/mo · not added yet</span>
+                    <span className="data-mono text-[11px]" style={{ color: 'var(--n350)' }}>{money0(t.amount)}/mo · not added yet</span>
                   </div>
                   <button onClick={() => addSuggested(t)} disabled={addingId === t.id}
                     className="btn-soft text-xs px-3 py-1.5 rounded-full font-semibold flex-shrink-0">
@@ -311,7 +314,7 @@ export default function Commitments() {
       <Reveal delay={100}>
         <div className="card mb-4">
           <form onSubmit={handleAdd} className="p-6">
-            <p className="text-xs font-semibold uppercase mb-4" style={{ color: 'var(--n400)', letterSpacing: '0.07em' }}>Add a commitment</p>
+            <p className="eyebrow mb-4" style={{ color: 'var(--n400)' }}>Add a commitment</p>
             <div className="flex gap-2 mb-3">
               <input value={name} onChange={e => setName(e.target.value)} placeholder="Name (e.g. Rent, Tuition)"
                 className="flex-1 min-w-0 rounded-xl px-3.5 py-2.5 text-sm" style={inputStyle} />
@@ -329,7 +332,7 @@ export default function Commitments() {
             {saveTarget === 'commitments' && (
               <>
                 <div className="flex items-center justify-between mb-3 px-1">
-                  <span className="text-xs font-semibold uppercase" style={{ color: 'var(--n400)', letterSpacing: '0.06em' }}>Due date</span>
+                  <span className="eyebrow" style={{ color: 'var(--n400)' }}>Due date</span>
                   <input type="date" value={date} onChange={e => e.target.value && setDate(e.target.value)}
                     className="text-xs font-semibold rounded-full px-3 py-1.5 cursor-pointer"
                     style={{ background: 'var(--surface-2)', border: '1.5px solid var(--border-2)', color: 'var(--n700)' }} />
@@ -366,14 +369,14 @@ export default function Commitments() {
       {templates.length > 0 && (
         <Reveal delay={140}>
           <div className="card p-5">
-            <h2 className="text-xs font-semibold uppercase mb-3" style={{ color: 'var(--n500)', letterSpacing: '0.1em' }}>Recurring</h2>
+            <h2 className="eyebrow mb-3" style={{ color: 'var(--n500)', letterSpacing: '0.1em' }}>Recurring</h2>
             <ul className="flex flex-col gap-2">
               {templates.map(t => (
                 <li key={t.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl"
                   style={{ background: 'var(--surface-2)', border: '1px solid var(--border-soft)' }}>
                   <span style={{ width: 9, height: 9, borderRadius: '50%', background: t.color, flexShrink: 0 }} />
                   <span className="text-sm flex-1 truncate" style={{ color: 'var(--n800)' }}>{t.name}</span>
-                  <span className="text-sm font-semibold tabular-nums" style={{ color: 'var(--n700)' }}>{money0(t.amount)}/mo</span>
+                  <span className="data-mono text-xs font-semibold" style={{ color: 'var(--n700)' }}>{money0(t.amount)}/mo</span>
                   <button onClick={() => stopRecurring(t.id)} className="text-xs font-semibold px-2.5 py-1 rounded-full"
                     style={{ background: 'var(--surface)', border: '1px solid var(--border-2)', color: 'var(--n400)', cursor: 'pointer' }}>Stop</button>
                 </li>
@@ -392,23 +395,23 @@ export default function Commitments() {
           <div className="modal-sheet" onClick={e => e.stopPropagation()}>
             <div className="p-6">
               <div className="flex items-center justify-between mb-1.5">
-                <h2 className="text-lg font-extrabold" style={{ color: 'var(--n900)', letterSpacing: '-0.02em' }}>Edit commitment</h2>
+                <h2 className="text-lg font-bold" style={{ color: 'var(--n900)', letterSpacing: '-0.02em' }}>Edit commitment</h2>
                 <button onClick={() => setEditing(null)} aria-label="Close" style={{ ...editBtnStyle, width: 36, height: 36, fontSize: 14 }}>✕</button>
               </div>
               <p className="text-xs mb-4" style={{ color: 'var(--n350)' }}>Changes here apply to {monthLabel(month)} only.</p>
               <input value={editName} onChange={e => setEditName(e.target.value)} placeholder="Name"
                 className="w-full rounded-xl px-3.5 py-2.5 text-sm mb-3" style={inputStyle} autoFocus />
               <div className="flex items-center justify-between mb-3 px-1">
-                <span className="text-xs font-semibold uppercase" style={{ color: 'var(--n400)', letterSpacing: '0.06em' }}>Due date</span>
+                <span className="eyebrow" style={{ color: 'var(--n400)' }}>Due date</span>
                 <input type="date" value={editDate} onChange={e => e.target.value && setEditDate(e.target.value)}
                   className="text-xs font-semibold rounded-full px-3 py-1.5 cursor-pointer"
                   style={{ background: 'var(--surface-2)', border: '1.5px solid var(--border-2)', color: 'var(--n700)' }} />
               </div>
               <div className="flex items-center rounded-2xl px-4 mb-4" style={{ background: 'var(--surface-2)', border: '1.5px solid var(--border-2)' }}>
-                <span className="text-2xl font-bold mr-1" style={{ color: 'var(--n300)' }}>৳</span>
+                <span className="text-xl font-semibold mr-1.5" style={{ color: 'var(--n300)' }}>৳</span>
                 <input type="number" min="0.01" step="1" value={editAmount} onChange={e => setEditAmount(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && saveEdit()}
-                  className="w-full py-3 text-3xl font-extrabold tabular-nums"
+                  className="w-full py-3 text-3xl font-bold tabular-nums"
                   style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--n900)' }} />
               </div>
               <button onClick={saveEdit} disabled={!editName.trim() || !(parseFloat(editAmount) > 0)}
@@ -424,7 +427,7 @@ export default function Commitments() {
           <div className="modal-sheet" onClick={e => e.stopPropagation()}>
             <div className="p-6">
               <div className="flex items-center justify-between mb-2">
-                <h2 className="text-lg font-extrabold" style={{ color: 'var(--n900)', letterSpacing: '-0.02em' }}>Commitments cap</h2>
+                <h2 className="text-lg font-bold" style={{ color: 'var(--n900)', letterSpacing: '-0.02em' }}>Commitments cap</h2>
                 <button onClick={() => setShowCap(false)} aria-label="Close" style={{ ...editBtnStyle, width: 36, height: 36, fontSize: 14 }}>✕</button>
               </div>
               <p className="text-xs mb-4" style={{ color: 'var(--n350)' }}>An optional monthly ceiling to watch against. Leave blank to remove.</p>

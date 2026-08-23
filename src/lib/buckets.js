@@ -1,3 +1,4 @@
+import Icon from '../components/icons'
 import { supabase } from './supabase'
 
 /* ══════════════════════════════════════════════════════════════════
@@ -45,7 +46,25 @@ export const BUCKETS = [
 ]
 
 export const BUCKET_KEYS = BUCKETS.map(b => b.key)
-export const bucketMeta = (key) => BUCKETS.find(b => b.key === key) ?? BUCKETS[0]
+
+// Icon rendering has moved off the stored `icon` string (was a raw emoji
+// character, still saved to bucket_settings for backward compatibility)
+// onto the fixed 4-key set below, resolved to the shared <Icon> component —
+// see src/components/icons.jsx. Buckets aren't user-creatable, so keying
+// off `key` rather than the DB value is safe and sidesteps any migration.
+export const BUCKET_ICON_NAME = {
+  daily: 'coins',
+  groceries: 'basket',
+  bills: 'receipt',
+  commitments: 'bank',
+}
+
+export const bucketMeta = (key) => {
+  const b = BUCKETS.find(x => x.key === key) ?? BUCKETS[0]
+  // Icon(...) rather than JSX — this file stays plain .js, and a direct
+  // call produces the exact same element JSX would.
+  return { ...b, icon: Icon({ name: BUCKET_ICON_NAME[b.key] }) }
+}
 
 // Palette offered when a user recolors a bucket.
 export const BUCKET_COLORS = [

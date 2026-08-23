@@ -6,6 +6,7 @@ import { dayKey, parseKey, addDays, startOfWeek, monthKey, monthRange, monthName
 import { loadAllTransactions } from '../lib/transactions'
 import { BUCKETS, bucketMeta } from '../lib/buckets'
 import Reveal from '../components/Reveal'
+import Icon from '../components/icons'
 
 const PRESETS = [
   { key: '7d', label: '7 days' },
@@ -180,7 +181,7 @@ export default function AllTransactions() {
         </div>
       ) : groups.length === 0 ? (
         <div className="card py-16 text-center">
-          <p className="text-4xl mb-3">🔍</p>
+          <p className="text-4xl mb-3" style={{ color: 'var(--n300)' }}><Icon name="search" strokeWidth={1.5} /></p>
           <p className="text-sm" style={{ color: 'var(--n350)' }}>Nothing matches these filters.</p>
         </div>
       ) : (

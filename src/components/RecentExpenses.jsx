@@ -15,7 +15,7 @@ export default function RecentExpenses({ expenses }) {
       {expenses.length === 0 ? (
         <div className="flex items-center gap-3 py-2">
           <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'var(--surface-2)' }}>
-            <span style={{ fontSize: 16 }}>🧾</span>
+            <Icon name="receipt" size={16} />
           </div>
           <div>
             <p className="text-sm font-medium" style={{ color: 'var(--n500)' }}>No expenses logged yet</p>

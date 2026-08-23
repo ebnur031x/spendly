@@ -339,13 +339,13 @@ function initExtras(type, log) {
     .map(e => ({ label: e.label, amount: String(e.amount) }))
 }
 
-// Day types store a color + name but no icon, so derive a friendly glyph
-// from the slug/name with a sensible fallback.
-const ICON_BY_SLUG = { uni: '🎓', normal: '🏠', occasional: '✨', date: '💕', work: '💼', weekend: '🎉' }
+// Day types store a color + name but no icon, so derive one from the
+// slug/name with a sensible fallback.
+const ICON_BY_SLUG = { uni: 'school', normal: 'home', occasional: 'sparkle', date: 'heart', work: 'briefcase', weekend: 'confetti' }
 function dayTypeIcon(dt) {
   const slug = (dt.slug || '').toLowerCase()
-  if (ICON_BY_SLUG[slug]) return ICON_BY_SLUG[slug]
+  if (ICON_BY_SLUG[slug]) return <Icon name={ICON_BY_SLUG[slug]} />
   const name = (dt.name || '').toLowerCase()
   const hit = Object.keys(ICON_BY_SLUG).find(k => name.includes(k))
-  return hit ? ICON_BY_SLUG[hit] : '📅'
+  return <Icon name={hit ? ICON_BY_SLUG[hit] : 'calendar'} />
 }

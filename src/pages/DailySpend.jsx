@@ -36,21 +36,21 @@ function expenseTime(e) {
 }
 
 const PRESETS = [
-  { label: 'Breakfast', emoji: '🍳', category: 'Food' },
-  { label: 'Lunch', emoji: '🍱', category: 'Food' },
-  { label: 'Dinner', emoji: '🍛', category: 'Food' },
-  { label: 'Snack', emoji: '🍫', category: 'Food' },
-  { label: 'Tea / Coffee', emoji: '☕', category: 'Food' },
-  { label: 'Cigarette', emoji: '🚬', category: 'Other' },
-  { label: 'Transport', emoji: '🚌', category: 'Transport' },
-  { label: 'Gym', emoji: '💪', category: 'Gym' },
+  { label: 'Breakfast', emoji: <Icon name="sunrise" />, category: 'Food' },
+  { label: 'Lunch', emoji: <Icon name="utensils" />, category: 'Food' },
+  { label: 'Dinner', emoji: <Icon name="bowl" />, category: 'Food' },
+  { label: 'Snack', emoji: <Icon name="cookie" />, category: 'Food' },
+  { label: 'Tea / Coffee', emoji: <Icon name="coffee" />, category: 'Food' },
+  { label: 'Cigarette', emoji: <Icon name="cigarette" />, category: 'Other' },
+  { label: 'Transport', emoji: <Icon name="bus" />, category: 'Transport' },
+  { label: 'Gym', emoji: <Icon name="gym" />, category: 'Gym' },
 ]
 
 const PARTS = [
-  { key: 'morning', label: 'Morning', emoji: '🌅' },
-  { key: 'afternoon', label: 'Afternoon', emoji: '☀️' },
-  { key: 'evening', label: 'Evening', emoji: '🌆' },
-  { key: 'night', label: 'Night', emoji: '🌙' },
+  { key: 'morning', label: 'Morning', emoji: <Icon name="sunrise" /> },
+  { key: 'afternoon', label: 'Afternoon', emoji: <Icon name="sun" /> },
+  { key: 'evening', label: 'Evening', emoji: <Icon name="sunset" /> },
+  { key: 'night', label: 'Night', emoji: <Icon name="moon" /> },
 ]
 function partOfDay(h) {
   if (h >= 5 && h <= 11) return 'morning'
@@ -542,7 +542,7 @@ export default function DailySpend() {
                   {category === 'Food' && (
                     <div className="flex items-center gap-2 mb-4">
                       <span className="text-xs font-medium" style={{ color: 'var(--n400)' }}>Where?</span>
-                      {[{ v: 'home', label: 'Home', emoji: '🏠' }, { v: 'out', label: 'Outside', emoji: '🛵' }].map(o => {
+                      {[{ v: 'home', label: 'Home', emoji: <Icon name="home" /> }, { v: 'out', label: 'Outside', emoji: <Icon name="pin" /> }].map(o => {
                         const on = place === o.v
                         return (
                           <button key={o.v} type="button" onClick={() => setPlace(on ? '' : o.v)}
@@ -636,7 +636,7 @@ export default function DailySpend() {
             </div>
           ) : !hasAnything ? (
             <div className="card py-16 text-center">
-              <p className="text-4xl mb-3">{isFuture ? '📅' : '🗓️'}</p>
+              <p className="text-4xl mb-3" style={{ color: 'var(--n300)' }}><Icon name="calendar" strokeWidth={1.5} /></p>
               <p className="text-sm" style={{ color: 'var(--n350)' }}>{isFuture ? 'Nothing planned for this day yet.' : `Nothing logged for ${isToday ? 'today' : 'this day'} yet.`}</p>
               <p className="text-xs mt-1" style={{ color: 'var(--n300)' }}>{isFuture ? 'Add an upcoming expense above ↑' : 'Add your first expense above ↑'}</p>
             </div>

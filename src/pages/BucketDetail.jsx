@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
+import Icon from '../components/icons'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
@@ -33,13 +34,13 @@ const CONFIG = {
     defaultName: 'Bill',
     namePlaceholder: 'What was it?',
     types: [
-      { label: 'Electricity', emoji: '⚡' },
-      { label: 'Water', emoji: '💧' },
-      { label: 'Gas', emoji: '🔥' },
-      { label: 'Internet', emoji: '🌐' },
-      { label: 'Phone', emoji: '📱' },
-      { label: 'One-off', emoji: '✨' },
-      { label: 'Other', emoji: '🧾' },
+      { label: 'Electricity', emoji: <Icon name="bolt" size={15} /> },
+      { label: 'Water', emoji: <Icon name="droplet" size={15} /> },
+      { label: 'Gas', emoji: <Icon name="flame" size={15} /> },
+      { label: 'Internet', emoji: <Icon name="globe" size={15} /> },
+      { label: 'Phone', emoji: <Icon name="phone" size={15} /> },
+      { label: 'One-off', emoji: <Icon name="sparkle" size={15} /> },
+      { label: 'Other', emoji: <Icon name="receipt" size={15} /> },
     ],
   },
 }
@@ -266,7 +267,7 @@ export default function BucketDetail({ bucketKey }) {
           <Link to="/groceries/deep-dive" className="card p-4 mb-4 row-hover flex items-center gap-3"
             style={{ textDecoration: 'none' }}>
             <span className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-              style={{ background: `${color}22`, fontSize: 17 }}>🧮</span>
+              style={{ background: `${color}22`, fontSize: 17, color }}><Icon name="calculator" /></span>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-bold" style={{ color: 'var(--n900)' }}>Groceries deep-dive</p>
               <p className="text-xs mt-0.5" style={{ color: 'var(--n350)' }}>Log what you buy — weekly &amp; monthly totals</p>
@@ -564,8 +565,11 @@ function fmtDate(key) {
   return key === today ? `Today · ${md}` : `${md} · ${wd}`
 }
 
-const BILL_EMOJI = { Electricity: '⚡', Water: '💧', Gas: '🔥', Internet: '🌐', Phone: '📱', 'One-off': '✨', Other: '🧾' }
+const BILL_ICON = {
+  Electricity: 'bolt', Water: 'droplet', Gas: 'flame', Internet: 'globe',
+  Phone: 'phone', 'One-off': 'sparkle', Other: 'receipt',
+}
 function typeEmoji(bucket, name) {
-  if (bucket === 'bills') return BILL_EMOJI[name] ?? null
+  if (bucket === 'bills' && BILL_ICON[name]) return <Icon name={BILL_ICON[name]} size={15} />
   return null
 }

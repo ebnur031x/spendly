@@ -2,13 +2,15 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
-import { monthKey, monthLabel } from '../lib/dates'
+import { monthKey } from '../lib/dates'
 import { getBudget, upsertBudget } from '../lib/budgets'
 import { isMissingSchema } from '../lib/schema'
-import { BUCKETS, BUCKET_KEYS } from '../lib/buckets'
+import { BUCKETS, BUCKET_KEYS, bucketMeta } from '../lib/buckets'
 import Reveal from '../components/Reveal'
 import MonthNav from '../components/MonthNav'
+import MonthTitle from '../components/MonthTitle'
 import SetupScreen from '../components/SetupScreen'
+import Icon from '../components/icons'
 
 const MONTH_RE = /^\d{4}-\d{2}$/
 
@@ -93,7 +95,7 @@ export default function BudgetSettings() {
       else setError(err.message)
       return
     }
-    toast({ icon: '🎯', message: 'Budget saved' })
+    toast({ icon: <Icon name="check" />, message: 'Budget saved' })
     navigate(month === monthKey() ? '/dashboard' : `/dashboard?month=${month}`)
   }
 

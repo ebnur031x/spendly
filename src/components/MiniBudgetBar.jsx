@@ -59,12 +59,19 @@ export default function MiniBudgetBar({ used = 0, cap = null, color = '#22c55e',
   )
 }
 
-// Resolve a bucket's monthly-equivalent cap from its stored mini-budget +
-// cap period, plus a human label for the cap.
-export function resolveCap({ miniBudget, capPeriod }, daysInMonth) {
-  if (miniBudget == null || miniBudget <= 0) return { cap: null, label: 'No cap set' }
-  if (capPeriod === 'daily') {
-    return { cap: miniBudget * daysInMonth, label: `${money0(miniBudget)}/day cap` }
+// Resolve a bucket's monthly-equivalent cap. The per-bucket cap set on the
+// Budget Settings screen (`budgets.category_budgets[bucket]`) is the primary
+// source — it's the number the user actually typed in as "my budget for
+// this bucket". The bucket's own mini-budget (deep-dive projections, or a
+// manually-set cap for Bills/Commitments) is only a fallback for buckets
+// Budget Settings hasn't been given a value for.
+export function resolveCap({ categoryBudget, miniBudget, capPeriod }, daysInMonth) {
+  if (categoryBudget != null && categoryBudget > 0) {
+    return { cap: categoryBudget, label: `${money0(categoryBudget)}/mo budget`, fromSettings: true }
   }
-  return { cap: miniBudget, label: `${money0(miniBudget)}/mo cap` }
+  if (miniBudget == null || miniBudget <= 0) return { cap: null, label: 'No cap set', fromSettings: false }
+  if (capPeriod === 'daily') {
+    return { cap: miniBudget * daysInMonth, label: `${money0(miniBudget)}/day cap`, fromSettings: false }
+  }
+  return { cap: miniBudget, label: `${money0(miniBudget)}/mo cap`, fromSettings: false }
 }

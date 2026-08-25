@@ -8,6 +8,7 @@ import { useToast } from '../context/ToastContext'
 import { money, money0 } from '../lib/format'
 import { dayKey, parseKey, monthKey, daysInMonth } from '../lib/dates'
 import { insertExpenses } from '../lib/expenses'
+import { getBudget } from '../lib/budgets'
 import { bucketMeta, ensureBucketSettings, updateBucketSetting, indexSettings } from '../lib/buckets'
 import { suggestBillType } from '../lib/classify'
 import { useBucketRedirect } from '../hooks/useBucketRedirect'
@@ -69,6 +70,7 @@ export default function BucketDetail({ bucketKey }) {
 
   const [rows, setRows] = useState([])
   const [setting, setSetting] = useState(null)
+  const [budgetRow, setBudgetRow] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -98,15 +100,17 @@ export default function BucketDetail({ bucketKey }) {
 
   async function load() {
     setLoading(true)
-    const [expRes, setRes] = await Promise.all([
+    const [expRes, setRes, budgetRes] = await Promise.all([
       supabase.from('expenses').select('*')
         .eq('user_id', user.id).eq('bucket', key)
         .order('date', { ascending: false }).order('created_at', { ascending: false }),
       ensureBucketSettings(user.id),
+      getBudget(user.id, month),
     ])
     if (expRes.error) setError(expRes.error.message)
     setRows(expRes.data ?? [])
     setSetting(indexSettings(setRes.data ?? [])[key] ?? null)
+    setBudgetRow(budgetRes.data ?? null)
     setLoading(false)
   }
 
@@ -249,7 +253,8 @@ export default function BucketDetail({ bucketKey }) {
 
   const miniBudget = setting?.mini_budget != null ? Number(setting.mini_budget) : null
   const capPeriod = setting?.cap_period ?? 'monthly'
-  const { cap, label: capLabel } = resolveCap({ miniBudget, capPeriod }, daysInMonth(month))
+  const categoryBudget = budgetRow?.category_budgets?.[key] != null ? Number(budgetRow.category_budgets[key]) : null
+  const { cap, label: capLabel, fromSettings: capFromSettings } = resolveCap({ categoryBudget, miniBudget, capPeriod }, daysInMonth(month))
   const color = setting?.color ?? meta.color
   const needsNote = !cfg.types || type === 'Other' || type === 'One-off'
   const canAdd = !!amount && parseFloat(amount) > 0 && (!needsNote || !!name.trim())
@@ -294,7 +299,15 @@ export default function BucketDetail({ bucketKey }) {
             <span className="eyebrow" style={{ color: 'var(--n400)' }}>
               This month
             </span>
-            {key === 'groceries' ? (
+            {capFromSettings ? (
+              // Budget Settings has a per-bucket cap for this bucket — that's
+              // the number actually shown above, so edit it at the source
+              // instead of the bucket's own (now-shadowed) mini-budget.
+              <Link to={month === monthKey() ? '/budget-settings' : `/budget-settings?month=${month}`}
+                className="btn-soft text-xs px-3 py-1.5 rounded-full font-semibold" style={{ textDecoration: 'none' }}>
+                Edit in Budget Settings ›
+              </Link>
+            ) : key === 'groceries' ? (
               // Read-only here: the deep-dive is the one writer of this cap
               // (same fix as Daily Spend's — two editors on one field
               // silently fight each other).

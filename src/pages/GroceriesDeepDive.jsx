@@ -7,6 +7,7 @@ import { money, money0 } from '../lib/format'
 import { monthKey, dayKey, daysInMonth } from '../lib/dates'
 import { isMissingSchema } from '../lib/schema'
 import { bucketMeta, ensureBucketSettings, updateBucketSetting, indexSettings } from '../lib/buckets'
+import { getBudget } from '../lib/budgets'
 import {
   listLogItems, addLogItem, updateLogItem, deleteLogItem, groupItemsByWeek,
 } from '../lib/groceryDeepDive'
@@ -63,6 +64,7 @@ export default function GroceriesDeepDive() {
 
   const [entries, setEntries] = useState([])
   const [setting, setSetting] = useState(null) // bucket_settings row for 'groceries'
+  const [budgetRow, setBudgetRow] = useState(null)
   const [savingBudget, setSavingBudget] = useState(false)
 
   // composer
@@ -82,10 +84,14 @@ export default function GroceriesDeepDive() {
   useEffect(() => { loadEntries() /* eslint-disable-next-line */ }, [month])
 
   async function loadSettings() {
-    const { data, error: err } = await ensureBucketSettings(user.id)
+    const [{ data, error: err }, budgetRes] = await Promise.all([
+      ensureBucketSettings(user.id),
+      getBudget(user.id, monthKey()),
+    ])
     if (isMissingSchema(err)) { setMissingSchema(true); return }
     if (err) setError(err.message)
     setSetting(indexSettings(data ?? [])['groceries'] ?? null)
+    setBudgetRow(budgetRes.data ?? null)
   }
 
   async function loadEntries() {
@@ -183,6 +189,8 @@ export default function GroceriesDeepDive() {
      on every add would make the budget drift with each purchase instead
      of staying a target. ── */
   const capInSync = !!setting && Number(setting.mini_budget) === budgetTarget
+  const categoryBudget = budgetRow?.category_budgets?.groceries != null ? Number(budgetRow.category_budgets.groceries) : null
+  const capFromSettings = categoryBudget != null && categoryBudget > 0
 
   async function handleSetBudget() {
     if (!setting || savingBudget || capInSync) return
@@ -293,7 +301,14 @@ export default function GroceriesDeepDive() {
               Targets the projection while the month's in progress (that's
               the point of projecting it), the real total once it's over. */}
           {entries.length > 0 && (
-            capInSync ? (
+            capFromSettings ? (
+              <div className="flex items-center gap-2 rounded-xl px-3.5 py-2.5"
+                style={{ background: 'var(--surface-2)', border: '1px solid var(--border-2)' }}>
+                <p className="text-xs" style={{ color: 'var(--n400)' }}>
+                  Your Groceries budget is set to {money0(categoryBudget)} in Budget Settings — that's what your cap uses, not this tracker's total.
+                </p>
+              </div>
+            ) : capInSync ? (
               <div className="flex items-center gap-2 rounded-xl px-3.5 py-2.5"
                 style={{ background: `${groceries.color}14`, border: `1px solid ${groceries.color}44` }}>
                 <span aria-hidden style={{ color: groceries.color, fontSize: 13 }}>✓</span>

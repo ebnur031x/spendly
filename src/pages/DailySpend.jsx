@@ -8,6 +8,7 @@ import { CATEGORIES, CATEGORY_TYPES, getCategoryMeta } from '../lib/categories'
 import { dayKey, parseKey, expenseDay, addDays, monthKey, daysInMonth } from '../lib/dates'
 import { insertExpenses } from '../lib/expenses'
 import { bucketMeta, ensureBucketSettings, indexSettings } from '../lib/buckets'
+import { getBudget } from '../lib/budgets'
 import { suggestBillType } from '../lib/classify'
 import { useBucketRedirect } from '../hooks/useBucketRedirect'
 import { useUndoableDelete } from '../hooks/useUndoableDelete'
@@ -79,6 +80,7 @@ export default function DailySpend() {
   const [dailyLogs, setDailyLogs] = useState([])
   const [dayTypes, setDayTypes] = useState([])
   const [setting, setSetting] = useState(null)
+  const [budgetRow, setBudgetRow] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const { deleteWithUndo } = useUndoableDelete()
@@ -123,16 +125,18 @@ export default function DailySpend() {
 
   async function fetchData() {
     setLoading(true)
-    const [expRes, logRes, setRes] = await Promise.all([
+    const [expRes, logRes, setRes, budgetRes] = await Promise.all([
       supabase.from('expenses').select('*').eq('user_id', user.id).eq('bucket', 'daily')
         .order('created_at', { ascending: false }),
       supabase.from('daily_logs').select('*').eq('user_id', user.id).order('date', { ascending: false }),
       ensureBucketSettings(user.id),
+      getBudget(user.id, month),
     ])
     if (expRes.error) setError(expRes.error.message)
     setExpenses(expRes.data ?? [])
     setDailyLogs(logRes.data ?? [])
     setSetting(indexSettings(setRes.data ?? [])['daily'] ?? null)
+    setBudgetRow(budgetRes.data ?? null)
     const { data: dts } = await seedDefaultDayTypesIfEmpty(user.id)
     setDayTypes(dts ?? [])
     setLoading(false)
@@ -410,7 +414,8 @@ export default function DailySpend() {
 
   const miniBudget = setting?.mini_budget != null ? Number(setting.mini_budget) : null
   const capPeriod = setting?.cap_period ?? 'monthly'
-  const { cap, label: capLabel } = resolveCap({ miniBudget, capPeriod }, daysInMonth(month))
+  const categoryBudget = budgetRow?.category_budgets?.daily != null ? Number(budgetRow.category_budgets.daily) : null
+  const { cap, label: capLabel, fromSettings: capFromSettings } = resolveCap({ categoryBudget, miniBudget, capPeriod }, daysInMonth(month))
   const color = setting?.color ?? meta.color
   const dailyCapNote = capPeriod === 'daily' && miniBudget != null
     ? `Today ${fmt0(todayUsed)} of ${fmt0(miniBudget)}` : capLabel
@@ -445,10 +450,17 @@ export default function DailySpend() {
           <div className="card p-5 mb-4">
             <div className="flex items-center justify-between mb-3">
               <span className="eyebrow" style={{ color: 'var(--n400)' }}>Daily Spend cap</span>
-              <Link to="/budget-settings/daily-deep-dive"
-                className="btn-soft text-xs px-3 py-1.5 rounded-full font-semibold" style={{ textDecoration: 'none' }}>
-                {miniBudget != null ? 'Deep dive ›' : 'Set it up ›'}
-              </Link>
+              {capFromSettings ? (
+                <Link to="/budget-settings"
+                  className="btn-soft text-xs px-3 py-1.5 rounded-full font-semibold" style={{ textDecoration: 'none' }}>
+                  Edit in Budget Settings ›
+                </Link>
+              ) : (
+                <Link to="/budget-settings/daily-deep-dive"
+                  className="btn-soft text-xs px-3 py-1.5 rounded-full font-semibold" style={{ textDecoration: 'none' }}>
+                  {miniBudget != null ? 'Deep dive ›' : 'Set it up ›'}
+                </Link>
+              )}
             </div>
             <MiniBudgetBar used={monthUsed} cap={cap} color={color}
               note={miniBudget != null ? dailyCapNote : 'Set from the deep dive'} />

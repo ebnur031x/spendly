@@ -1,10 +1,12 @@
 import { useState, useEffect, useMemo } from 'react'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import MonthTitle from '../components/MonthTitle'
 import { money, money0 } from '../lib/format'
 import { dayKey, parseKey, monthKey, monthLabel, daysInMonth } from '../lib/dates'
 import { bucketMeta, ensureBucketSettings, updateBucketSetting, indexSettings } from '../lib/buckets'
+import { getBudget } from '../lib/budgets'
 import { suggestBillType } from '../lib/classify'
 import { useBucketRedirect } from '../hooks/useBucketRedirect'
 import { useUndoableDelete } from '../hooks/useUndoableDelete'
@@ -39,6 +41,7 @@ export default function Commitments() {
   const [suggested, setSuggested] = useState([])
   const [addingId, setAddingId] = useState(null)
   const [setting, setSetting] = useState(null)
+  const [budgetRow, setBudgetRow] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -63,17 +66,19 @@ export default function Commitments() {
 
   async function load() {
     setLoading(true)
-    const [instRes, tplRes, sugRes, setRes] = await Promise.all([
+    const [instRes, tplRes, sugRes, setRes, budgetRes] = await Promise.all([
       listCommitmentInstances(user.id, month),
       listCommitmentTemplates(user.id),
       listSuggestedCommitments(user.id, month),
       ensureBucketSettings(user.id),
+      getBudget(user.id, month),
     ])
     if (instRes.error) setError(instRes.error.message)
     setInstances(instRes.data ?? [])
     setTemplates(tplRes.data ?? [])
     setSuggested(sugRes.data ?? [])
     setSetting(indexSettings(setRes.data ?? [])['commitments'] ?? null)
+    setBudgetRow(budgetRes.data ?? null)
     setColor(nextCommitmentColor(tplRes.data ?? []))
     setLoading(false)
   }
@@ -190,7 +195,8 @@ export default function Commitments() {
 
   const used = useMemo(() => instances.reduce((s, i) => s + Number(i.amount), 0), [instances])
   const miniBudget = setting?.mini_budget != null ? Number(setting.mini_budget) : null
-  const { cap, label: capLabel } = resolveCap({ miniBudget, capPeriod: 'monthly' }, daysInMonth(month))
+  const categoryBudget = budgetRow?.category_budgets?.commitments != null ? Number(budgetRow.category_budgets.commitments) : null
+  const { cap, label: capLabel, fromSettings: capFromSettings } = resolveCap({ categoryBudget, miniBudget, capPeriod: 'monthly' }, daysInMonth(month))
   const color0 = setting?.color ?? meta.color
   const canAdd = !!name.trim() && !!amount && parseFloat(amount) > 0
 
@@ -215,10 +221,17 @@ export default function Commitments() {
               <span className="eyebrow flex-shrink-0" style={{ color: 'var(--n400)', whiteSpace: 'nowrap' }}>Reserved for</span>
               <MonthTitle month={month} size={19} />
             </span>
-            <button onClick={() => { setCapVal(miniBudget != null ? String(miniBudget) : ''); setShowCap(true) }}
-              className="btn-soft text-xs px-3 py-1.5 rounded-full font-semibold">
-              {miniBudget != null ? 'Edit cap' : 'Set cap'}
-            </button>
+            {capFromSettings ? (
+              <Link to={month === monthKey() ? '/budget-settings' : `/budget-settings?month=${month}`}
+                className="btn-soft text-xs px-3 py-1.5 rounded-full font-semibold" style={{ textDecoration: 'none' }}>
+                Edit in Budget Settings ›
+              </Link>
+            ) : (
+              <button onClick={() => { setCapVal(miniBudget != null ? String(miniBudget) : ''); setShowCap(true) }}
+                className="btn-soft text-xs px-3 py-1.5 rounded-full font-semibold">
+                {miniBudget != null ? 'Edit cap' : 'Set cap'}
+              </button>
+            )}
           </div>
           <MiniBudgetBar used={used} cap={cap} color={color0} note={capLabel} />
         </div>

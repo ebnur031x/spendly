@@ -180,7 +180,9 @@ export default function Dashboard() {
   }
   const cards = BUCKETS.map(b => {
     const view = bucketView(b.key, snap.settingsByBucket)
-    const { cap } = resolveCap({ miniBudget: view.miniBudget, capPeriod: view.capPeriod }, dpm)
+    const categoryBudget = snap.budget?.category_budgets?.[b.key] != null
+      ? Number(snap.budget.category_budgets[b.key]) : null
+    const { cap } = resolveCap({ categoryBudget, miniBudget: view.miniBudget, capPeriod: view.capPeriod }, dpm)
     return { view, cap, used: snap.bucketTotals[b.key] || 0, entries: preview[b.key] || [] }
   })
 

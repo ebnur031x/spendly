@@ -141,7 +141,7 @@ export default function BucketDetail({ bucketKey }) {
   async function handleAdd(e) {
     e?.preventDefault()
     const amt = parseFloat(amount)
-    if (isNaN(amt) || amt <= 0 || !name.trim()) return
+    if (isNaN(amt) || amt <= 0 || (needsNote && !name.trim())) return
     setSaving(true); setError('')
     const row = buildRow(saveTarget, amt)
     const { data, error: err } = await insertExpenses([row])

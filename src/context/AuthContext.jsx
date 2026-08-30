@@ -8,16 +8,35 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    let active = true
+
+    // A failed or stalled auth startup used to leave the whole landing page
+    // blank forever. Session restoration is normally local and immediate, but
+    // mobile connections can still interrupt it while Safari is resuming.
+    let fallbackTimer
+
+    const finishLoading = (session = null) => {
+      if (!active) return
+      window.clearTimeout(fallbackTimer)
       setUser(session?.user ?? null)
       setLoading(false)
-    })
+    }
+
+    fallbackTimer = window.setTimeout(() => finishLoading(), 4000)
+
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => finishLoading(session))
+      .catch(() => finishLoading())
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      active = false
+      window.clearTimeout(fallbackTimer)
+      subscription.unsubscribe()
+    }
   }, [])
 
   return (

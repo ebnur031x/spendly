@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { money, money0 } from '../lib/format'
-import { dayKey, parseKey, addDays, startOfWeek, monthKey, monthRange, monthName } from '../lib/dates'
+import { dayKey, parseKey, addDays, startOfWeek, monthKey, monthRange, monthName, shiftMonth } from '../lib/dates'
 import { loadAllTransactions } from '../lib/transactions'
 import { BUCKETS, bucketMeta } from '../lib/buckets'
 import Reveal from '../components/Reveal'
@@ -13,6 +13,7 @@ const PRESETS = [
   { key: '5d', label: '5 days' },
   { key: 'week', label: 'This week' },
   { key: 'month', label: 'This month' },
+  { key: 'lastMonth', label: 'Last month' },
   { key: '14d', label: 'Biweekly' },
   { key: 'all', label: 'All time' },
   { key: 'custom', label: 'Custom' },
@@ -33,6 +34,12 @@ function presetRange(key, month = monthKey()) {
     case 'month': {
       const { start } = monthRange(month)
       const [y, m] = month.split('-').map(Number)
+      return { start, end: dayKey(new Date(y, m, 0)) }
+    }
+    case 'lastMonth': {
+      const lastMonth = shiftMonth(month, -1)
+      const { start } = monthRange(lastMonth)
+      const [y, m] = lastMonth.split('-').map(Number)
       return { start, end: dayKey(new Date(y, m, 0)) }
     }
     default: return { start: null, end: null } // 'all' / 'custom' (custom uses its own inputs)
@@ -140,7 +147,11 @@ export default function AllTransactions() {
         <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1 mb-2">
           {PRESETS.map(p => (
             <FilterChip key={p.key}
-              label={p.key === 'month' && month !== monthKey() ? monthName(month) : p.label}
+              label={
+                p.key === 'month' && month !== monthKey() ? monthName(month)
+                  : p.key === 'lastMonth' && month !== monthKey() ? monthName(shiftMonth(month, -1))
+                    : p.label
+              }
               active={preset === p.key} onClick={() => setPreset(p.key)} />
           ))}
         </div>
